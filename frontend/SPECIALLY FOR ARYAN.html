@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Department of Unnecessary Surprises</title>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ---------- Design tokens ---------- */
+:root{
+  --bg:#ffe45e; --ink:#2b1055; --pink:#ff4f9a; --blue:#3ec9ff; --mint:#5df2b5; --paper:#fffaf0;
+  --display:"Bagel Fat One","Arial Rounded MT Bold",Impact,sans-serif;
+  --body:"Fredoka","Trebuchet MS",system-ui,sans-serif;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#3a1c7a; --ink:#fff3c4; --paper:#2b1055}
+}
+:root[data-theme="dark"]{--bg:#3a1c7a; --ink:#fff3c4; --paper:#2b1055}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);overflow-x:hidden;
+  background-image:radial-gradient(var(--pink) 2px,transparent 2.5px);background-size:34px 34px;background-position:0 0}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 40%,transparent 40%,rgba(255,79,154,.25))}
+main{min-height:100%;display:grid;place-items:center;padding:24px 16px;position:relative;z-index:2}
+.stage{display:none;text-align:center;max-width:640px;width:100%}
+.stage.on{display:block}
+
+/* ---------- Headline: letters bounce independently ---------- */
+h1{font-family:var(--display);font-weight:400;font-size:clamp(2.3rem,9vw,4.6rem);line-height:1;margin:.2em 0 .25em;
+  -webkit-text-stroke:2px var(--ink);color:var(--paper);text-shadow:4px 4px 0 var(--pink),8px 8px 0 var(--ink);letter-spacing:.01em}
+h1 span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-8px) rotate(3deg)}}
+.sub{font-size:clamp(1rem,3.5vw,1.3rem);font-weight:500;max-width:30ch;margin:0 auto 1.6rem}
+.badge{display:inline-block;background:var(--ink);color:var(--bg);padding:.35em .9em;border-radius:99px;font-weight:600;
+  transform:rotate(-3deg);font-size:.95rem}
+
+/* ---------- Buttons ---------- */
+.btn{font-family:var(--display);font-size:clamp(1.1rem,4.5vw,1.6rem);color:var(--ink);background:var(--mint);
+  border:4px solid var(--ink);border-radius:22px;padding:.7em 1.1em;cursor:pointer;box-shadow:0 8px 0 var(--ink);
+  transition:transform .15s,box-shadow .15s,background .2s;animation:pulse 1.6s ease-in-out infinite;position:relative;touch-action:manipulation}
+.btn:hover{background:var(--blue);transform:translateY(-3px) rotate(-1.5deg) scale(1.04)}
+.btn:active{transform:translateY(6px);box-shadow:0 2px 0 var(--ink)}
+.btn:focus-visible{outline:4px dashed var(--pink);outline-offset:6px}
+.btn.dodge{transition:transform .25s cubic-bezier(.3,1.8,.5,1)}
+@keyframes pulse{50%{box-shadow:0 8px 0 var(--ink),0 0 0 12px rgba(255,79,154,.35)}}
+.small{font-size:1rem;background:var(--paper);animation:none;margin-top:1.4rem}
+.shy{min-height:1.4em;font-weight:500;margin-top:1.6rem}
+
+/* ---------- Fake loading ---------- */
+.bar{height:34px;border:4px solid var(--ink);border-radius:99px;background:var(--paper);overflow:hidden;margin:1rem auto;max-width:420px}
+.bar i{display:block;height:100%;width:0;background:repeating-linear-gradient(45deg,var(--pink) 0 14px,var(--blue) 14px 28px);transition:width .5s}
+#loadMsg{font-family:var(--display);font-size:clamp(1.3rem,5vw,2rem);min-height:2.4em}
+.spinner{font-size:4rem;display:inline-block;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Polaroid reveal ---------- */
+.polaroid{background:#fff;padding:14px 14px 10px;border-radius:6px;width:min(78vw,320px);margin:0 auto 1.2rem;
+  box-shadow:0 14px 0 rgba(43,16,85,.25),0 0 0 3px var(--ink);position:relative;transform-origin:50% 0;opacity:0}
+.polaroid.drop{animation:drop 1.3s cubic-bezier(.2,.9,.3,1.2) forwards}
+@keyframes drop{0%{transform:translateY(-120vh) rotate(-30deg);opacity:1}55%{transform:translateY(0) rotate(7deg);opacity:1}
+  70%{transform:translateY(-30px) rotate(-5deg)}85%{transform:translateY(0) rotate(3deg)}100%{transform:rotate(-2deg);opacity:1}}
+.polaroid:hover{animation:wob .6s ease-in-out}
+@keyframes wob{25%{transform:rotate(4deg) scale(1.05)}75%{transform:rotate(-6deg) scale(1.05)}}
+.polaroid .tape{position:absolute;top:-16px;left:50%;width:100px;height:30px;background:rgba(255,79,154,.75);transform:translateX(-50%) rotate(-4deg)}
+.polaroid .pic{aspect-ratio:1;width:100%;object-fit:cover;display:block;border:2px solid var(--ink);background:var(--blue)}
+.polaroid figcaption{font-family:var(--display);color:#2b1055;font-size:1.2rem;padding-top:10px}
+.polaroid{margin-inline:auto}
+.msg{font-size:clamp(1.15rem,4.2vw,1.55rem);font-weight:600;background:var(--paper);border:4px solid var(--ink);border-radius:26px;
+  padding:1em 1.1em;max-width:34ch;margin:0 auto;position:relative;box-shadow:6px 6px 0 var(--pink);min-height:3.6em;text-align:left}
+.msg::before{content:"";position:absolute;top:-18px;left:50%;border:12px solid transparent;border-bottom:18px solid var(--ink);transform:translateX(-50%)}
+.msg b{font-family:var(--display);font-weight:400;color:var(--pink)}
+.caret::after{content:"|";animation:blink .6s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* ---------- Background stickers + effects ---------- */
+.sticker{position:fixed;z-index:1;font-size:clamp(2rem,6vw,3.4rem);animation:float 6s ease-in-out infinite;pointer-events:none;filter:drop-shadow(3px 3px 0 var(--ink))}
+@keyframes float{50%{transform:translateY(-22px) rotate(14deg)}}
+.rise{position:fixed;bottom:-60px;z-index:3;pointer-events:none;animation:rise linear forwards}
+@keyframes rise{to{transform:translateY(-115vh) rotate(var(--r))}}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:5}
+.shake{animation:shake .5s}
+@keyframes shake{20%{transform:translate(-8px,4px) rotate(-1deg)}40%{transform:translate(8px,-4px) rotate(1deg)}60%{transform:translate(-6px,2px)}80%{transform:translate(6px,-2px)}}
+
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;animation-iteration-count:1!important}}
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+
+<main>
+  <!-- STAGE 1: landing -->
+  <section id="intro" class="stage on">
+    <span class="badge">Department of Unnecessary Surprises</span>
+    <h1 id="headline">Warning: something nice is coming</h1>
+    <p class="sub">Side effects include grinning, snorting, and sudden urges to say “aww”.</p>
+    <button class="btn" id="go">I am emotionally unprepared</button>
+    <p class="shy" id="shy"></p>
+  </section>
+
+  <!-- STAGE 2: fake loading -->
+  <section id="loading" class="stage" aria-live="polite">
+    <div class="spinner">🍕</div>
+    <div id="loadMsg">Preparing your surprise...</div>
+    <div class="bar"><i id="fill"></i></div>
+    <div id="pct" class="badge">0%</div>
+  </section>
+
+  <!-- STAGE 3: reveal -->
+  <section id="reveal" class="stage">
+    <figure class="polaroid" id="polaroid">
+      <div class="tape"></div>
+      <!-- Placeholder art. Set IMAGE_SRC in CONFIG to swap in your own photo. -->
+      <svg id="ph" class="pic" viewBox="0 0 200 200" role="img" aria-label="Placeholder: replace with your picture">
+        <rect width="200" height="200" fill="#3ec9ff"/>
+        <circle cx="100" cy="104" r="62" fill="#ffe45e" stroke="#2b1055" stroke-width="5"/>
+        <circle cx="78" cy="92" r="9" fill="#2b1055"/><circle cx="122" cy="92" r="9" fill="#2b1055"/>
+        <path d="M68 118q32 38 64 0z" fill="#ff4f9a" stroke="#2b1055" stroke-width="5" stroke-linejoin="round"/>
+        <circle cx="62" cy="112" r="9" fill="#ff4f9a" opacity=".6"/><circle cx="138" cy="112" r="9" fill="#ff4f9a" opacity=".6"/>
+        <text x="100" y="188" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="14" fill="#2b1055">(your photo goes here)</text>
+      </svg>
+      <img id="photo" class="pic" alt="" hidden>
+      <figcaption id="caption"></figcaption>
+    </figure>
+    <p class="msg" id="msg"></p>
+    <button class="btn small" id="again">Again! Again! Again!</button>
+  </section>
+</main>
+
+<script>
+/* =====================================================
+   CONFIG: edit these to make the page yours
+   ===================================================== */
+const CONFIG = {
+  IMAGE_SRC: "",                       // e.g. "me.jpg" or a full URL. Empty = cartoon placeholder.
+  CAPTION:   "Certified legend ✨",
+  // Message. Use <b>…</b> for pink highlighted words.
+  MESSAGE:   "Hey you! This is your official reminder that you are <b>wildly wonderful</b>, slightly chaotic, and the best part of someone’s day. Please enjoy this complimentary cake* 🎂 <br>(*cake is imaginary, love is real)",
+  EMOJIS:    ["🎉","💖","🍕","🦄","🌈","🤡","✨","🐸","🎈","🥳"],
+  HEADLINE_JOKES: ["Warning: something nice is coming"],
+  SHY_LINES: ["Oops, I’m shy. Try again 🙈","Okay okay, you caught me. Click away!"],
+  LOADING_LINES: [
+    "Preparing your surprise...","Untangling the confetti...","Asking the hamsters to run faster 🐹",
+    "Polishing the compliments...","Bribing a unicorn 🦄","Almost there (we lied)...","Stuck at 99%. Dramatic pause..."
+  ]
+};
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const rand = (a, b) => Math.random() * (b - a) + a;
+function show(id){ document.querySelectorAll(".stage").forEach(s => s.classList.toggle("on", s.id === id)); }
+
+/* ---------- landing: split headline into bouncing letters ---------- */
+const h = $("headline");
+h.innerHTML = [...CONFIG.HEADLINE_JOKES[0]].map((c, i) =>
+  c === " " ? " " : `<span style="animation-delay:${i * 0.07}s">${c}</span>`).join("");
+h.setAttribute("aria-label", CONFIG.HEADLINE_JOKES[0]);
+
+/* ---------- background stickers ---------- */
+["🍩","⭐","🎈","🦖","🍕","💫","🧁","🪩"].forEach((e, i) => {
+  const s = document.createElement("div");
+  s.className = "sticker"; s.textContent = e;
+  s.style.cssText = `left:${(i * 13 + 4) % 92}%;top:${(i % 2 ? 8 : 78) + rand(-4, 6)}%;animation-delay:${i * -0.8}s`;
+  document.body.appendChild(s);
+});
+
+/* ---------- shy button: dodges the first two hovers, then gives in ---------- */
+const go = $("go");
+let dodges = 0;
+go.addEventListener("pointerenter", e => {
+  if (e.pointerType !== "mouse" || dodges >= CONFIG.SHY_LINES.length) return;
+  go.classList.add("dodge");
+  go.style.transform = `translate(${rand(-110, 110)}px,${rand(-50, 50)}px) rotate(${rand(-12, 12)}deg)`;
+  $("shy").textContent = CONFIG.SHY_LINES[dodges++];
+  setTimeout(() => (go.style.transform = ""), 700);
+});
+
+/* ---------- the main show ---------- */
+go.addEventListener("click", async () => {
+  show("loading");
+  const fill = $("fill"), pct = $("pct"), msg = $("loadMsg");
+  const steps = [12, 30, 47, 63, 80, 99, 99];
+  for (let i = 0; i < steps.length; i++) {
+    msg.textContent = CONFIG.LOADING_LINES[i];
+    fill.style.width = steps[i] + "%"; pct.textContent = steps[i] + "%";
+    await sleep(i === steps.length - 1 ? 1500 : 700);   // longer pause at the fake 99%
+  }
+  fill.style.width = "100%"; pct.textContent = "100%";
+  await sleep(350);
+  reveal();
+});
+
+async function reveal(){
+  show("reveal");
+  document.body.classList.add("shake");
+  setTimeout(() => document.body.classList.remove("shake"), 500);
+
+  // picture: use the user's photo when provided
+  const photo = $("photo");
+  if (CONFIG.IMAGE_SRC) { photo.src = CONFIG.IMAGE_SRC; photo.hidden = false; $("ph").style.display = "none"; }
+  $("caption").textContent = CONFIG.CAPTION;
+
+  const p = $("polaroid"); p.classList.remove("drop"); void p.offsetWidth; p.classList.add("drop");
+  await sleep(750);
+  burst(); floatEmojis();
+  typeMessage(CONFIG.MESSAGE);
+  setTimeout(burst, 1400);
+}
+
+/* typewriter that respects inline <b> tags */
+async function typeMessage(html){
+  const el = $("msg"); el.innerHTML = ""; el.classList.add("caret");
+  const tmp = document.createElement("div"); tmp.innerHTML = html;
+  async function walk(node, target){
+    for (const n of node.childNodes) {
+      if (n.nodeType === 3) {
+        const t = document.createTextNode(""); target.appendChild(t);
+        for (const ch of n.textContent) { t.textContent += ch; await sleep(28); }
+      } else {
+        const c = n.cloneNode(false); target.appendChild(c);
+        await walk(n, c);
+      }
+    }
+  }
+  await walk(tmp, el);
+  el.classList.remove("caret");
+}
+
+/* ---------- floating emojis ---------- */
+function floatEmojis(){
+  for (let i = 0; i < 26; i++) setTimeout(() => {
+    const e = document.createElement("div");
+    e.className = "rise"; e.textContent = CONFIG.EMOJIS[i % CONFIG.EMOJIS.length];
+    e.style.left = rand(2, 94) + "vw"; e.style.fontSize = rand(1.6, 3.4) + "rem";
+    e.style.animationDuration = rand(3.5, 6.5) + "s"; e.style.setProperty("--r", rand(-40, 40) + "deg");
+    document.body.appendChild(e); setTimeout(() => e.remove(), 7000);
+  }, i * 110);
+}
+
+/* ---------- lightweight canvas confetti ---------- */
+const cv = $("confetti"), cx = cv.getContext("2d"); let bits = [], raf = 0;
+function fit(){ cv.width = innerWidth; cv.height = innerHeight; }
+addEventListener("resize", fit); fit();
+function burst(){
+  const colors = ["#ff4f9a","#3ec9ff","#5df2b5","#fff","#ffe45e","#2b1055"];
+  for (let i = 0; i < 130; i++) bits.push({
+    x: cv.width / 2, y: cv.height * 0.45, vx: rand(-9, 9), vy: rand(-16, -3), g: .35,
+    w: rand(6, 12), h: rand(4, 8), r: rand(0, 6), vr: rand(-.3, .3), c: colors[i % colors.length], life: 140
+  });
+  if (!raf) loop();
+}
+function loop(){
+  cx.clearRect(0, 0, cv.width, cv.height);
+  bits = bits.filter(b => b.life-- > 0 && b.y < cv.height + 20);
+  for (const b of bits) {
+    b.vy += b.g; b.vx *= .99; b.x += b.vx; b.y += b.vy; b.r += b.vr;
+    cx.save(); cx.translate(b.x, b.y); cx.rotate(b.r); cx.fillStyle = b.c;
+    cx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h); cx.restore();
+  }
+  raf = bits.length ? requestAnimationFrame(loop) : 0;
+}
+
+/* ---------- replay ---------- */
+$("again").addEventListener("click", () => {
+  $("msg").innerHTML = ""; $("fill").style.width = "0"; $("pct").textContent = "0%";
+  $("polaroid").classList.remove("drop");
+  go.click();
+});
+</script>
+</body>
+</html>
