@@ -1,5 +1,5 @@
 import { motion } from "framer-motion"
-import { AlertTriangle, CheckCircle2, Circle, Loader2 } from "lucide-react"
+import { AlertTriangleIcon, CheckCircleIcon, CircleIcon, SpinnerIcon } from "@/components/common/Icons"
 import type { AgentEvent } from "@/types/api"
 import { agents } from "./agents"
 
@@ -11,11 +11,11 @@ function lastEventOf(agent: AgentEvent["agent"], events: AgentEvent[]) {
 }
 
 function StatusIcon({ state }: { state: State }) {
-  if (state === "completed") return <CheckCircle2 className="h-5 w-5 text-forest" />
-  if (state === "warning") return <AlertTriangle className="h-5 w-5 text-sun" />
+  if (state === "completed") return <CheckCircleIcon className="h-5 w-5 text-[#4E633D]" />
+  if (state === "warning") return <AlertTriangleIcon className="h-5 w-5 text-[#A66843]" />
   if (state === "started" || state === "running")
-    return <Loader2 className="h-5 w-5 animate-spin text-forest" />
-  return <Circle className="h-5 w-5 text-forest/25" />
+    return <SpinnerIcon className="h-5 w-5 text-[#4E633D]" />
+  return <CircleIcon className="h-5 w-5 text-[#5C5A52]/30" />
 }
 
 export default function AgentStepper({ events }: { events: AgentEvent[] }) {
@@ -31,27 +31,20 @@ export default function AgentStepper({ events }: { events: AgentEvent[] }) {
           <motion.li
             key={id}
             layout
-            className={`relative flex gap-4 rounded-2xl border p-4 transition-colors ${
+            className={`relative flex gap-4 rounded-2xl p-4 transition-all ${
               active
-                ? "border-sage bg-white shadow-md"
+                ? "bg-[#F2EDE2] border-2 border-[#4E633D] shadow-md"
                 : state === "warning"
-                  ? "border-sun/60 bg-sun/5"
+                  ? "bg-[#F2EDE2] border-2 border-[#A66843] shadow-sm"
                   : state === "completed"
-                    ? "border-forest/15 bg-white"
-                    : "border-forest/10 bg-white/50"
+                    ? "bg-[#F2EDE2] border border-[#D4CCB9] shadow-sm"
+                    : "bg-[#F2EDE2]/70 border border-[#D4CCB9]/70 opacity-80"
             }`}
           >
             <div className="relative">
-              {active && (
-                <motion.span
-                  className="absolute inset-0 rounded-xl bg-sage"
-                  animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-                  transition={{ duration: 1.4, repeat: Infinity, ease: "easeOut" }}
-                />
-              )}
               <div
-                className={`relative flex h-11 w-11 items-center justify-center rounded-xl ${
-                  state === "idle" ? "bg-forest/10 text-forest/40" : "bg-forest text-ivory"
+                className={`relative flex h-11 w-11 items-center justify-center rounded-xl shadow-sm ${
+                  state === "idle" ? "bg-[#E5DFD0] text-[#5C5A52]" : "bg-[#E5DFD0] text-[#4E633D]"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -60,18 +53,18 @@ export default function AgentStepper({ events }: { events: AgentEvent[] }) {
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold">{label}</p>
+                <p className="font-semibold text-[#1E241B]">{label}</p>
                 <div className="flex items-center gap-2">
                   {id === "planner" && revisions > 1 && (
-                    <span className="rounded-full bg-sun/15 px-2 py-0.5 text-xs font-medium text-sun">
+                    <span className="rounded-full bg-[#A66843]/15 border border-[#A66843]/30 px-2 py-0.5 text-xs font-medium text-[#A66843]">
                       Revised after audit
                     </span>
                   )}
                   <StatusIcon state={state} />
                 </div>
               </div>
-              <p className="text-xs text-forest/60">{role}</p>
-              {last && <p className="mt-2 text-sm text-forest/80">{last.message}</p>}
+              <p className="text-xs text-[#5C5A52]">{role}</p>
+              {last && <p className="mt-2 text-sm text-[#1E241B]/90">{last.message}</p>}
             </div>
           </motion.li>
         )

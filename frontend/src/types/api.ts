@@ -1,7 +1,7 @@
 export type CropSeason = { season: string; crop: string }
 
 export type Scores = {
-  waterEfficiency: number // every score is 0 to 100
+  waterEfficiency: number
   climateCompatibility: number
   soilImprovement: number
   nitrogenCycling: number
@@ -47,7 +47,7 @@ export type ClimateSeason = {
   meanTempC: number
   longestDrySpellDays: number
   cluster: number
-  anomalyScore: number // 0 to 1, higher = more unusual
+  anomalyScore: number
   isAnomaly: boolean
 }
 
@@ -55,12 +55,18 @@ export type ClimateCluster = { id: number; name: string; description: string }
 
 export type SimilarSeason = { year: number; reason: string }
 
+export type CurrentSeasonSummary = {
+  label: string
+  summary: string
+  similar: SimilarSeason[]
+}
+
 export type ClimateFindings = {
   location: string
   seasonLabel: string
   seasons: ClimateSeason[]
   clusters: ClimateCluster[]
-  currentSeason: { label: string; summary: string; similar: SimilarSeason[] }
+  currentSeason: CurrentSeasonSummary
   source: string
   resolutionNote: string
 }

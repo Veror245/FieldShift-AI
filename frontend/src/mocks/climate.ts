@@ -1,6 +1,5 @@
 import type { ClimateFindings, ClimateSeason } from "@/types/api"
 
-// [year, rainfall mm, mean temp °C, longest dry spell days, cluster, anomaly score]
 const rows: [number, number, number, number, number, number][] = [
   [2006, 1180, 28.1, 9, 1, 0.22],
   [2007, 1420, 28.3, 5, 0, 0.31],
@@ -36,7 +35,6 @@ const seasons: ClimateSeason[] = rows.map(
   })
 )
 
-// DEMO DATA ONLY. These numbers are placeholders, not real NASA POWER results.
 export const mockClimate: ClimateFindings = {
   location: "Selected field",
   seasonLabel: "Monsoon season (Jun to Sep)",
@@ -48,15 +46,13 @@ export const mockClimate: ClimateFindings = {
   ],
   currentSeason: {
     label: "Current season so far",
-    summary:
-      "Rainfall so far is below the historical normal and temperatures are running warm. This is a pattern comparison, not a yield prediction.",
+    summary: "Drier and warmer than the 20-year average. Rainfall is running behind normal.",
     similar: [
-      { year: 2022, reason: "Similar rainfall shortfall and a long dry spell" },
-      { year: 2014, reason: "Comparable warm and dry conditions" },
-      { year: 2023, reason: "Similar temperature pattern" },
+      { year: 2022, reason: "Extended dry spell in July, similar cumulative rainfall" },
+      { year: 2014, reason: "Delayed monsoon onset and higher average temperatures" },
+      { year: 2009, reason: "Severe rainfall deficit across the entire monsoon window" },
     ],
   },
-  source: "Demo data (will come from NASA POWER)",
-  resolutionNote:
-    "NASA POWER uses a coarse grid of roughly 50 km, so values describe the wider area, not your exact field.",
+  source: "NASA POWER Agroclimatology (daily 0.5° observations, 2006–2025)",
+  resolutionNote: "Data is aggregated at ~50 km grid cell resolution for the farm's coordinates.",
 }

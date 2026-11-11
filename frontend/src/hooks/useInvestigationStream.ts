@@ -19,7 +19,6 @@ export function useInvestigationStream(investigationId = "demo") {
   }, [])
 
   useEffect(() => {
-    // Demo mode: plays a scripted sequence. It is NOT real agent output.
     if (USE_MOCK) {
       const timers: number[] = []
       let t = 0
@@ -36,7 +35,6 @@ export function useInvestigationStream(investigationId = "demo") {
       return () => timers.forEach(window.clearTimeout)
     }
 
-    // Live mode: Server-Sent Events from the backend
     const es = new EventSource(`${BASE_URL}/investigations/${investigationId}/events`)
     es.onmessage = (msg) => {
       try {
@@ -47,7 +45,6 @@ export function useInvestigationStream(investigationId = "demo") {
           es.close()
         }
       } catch {
-        /* ignore malformed event */
       }
     }
     es.onerror = () => {

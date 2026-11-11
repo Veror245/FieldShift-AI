@@ -22,12 +22,10 @@ export function Term({ k, children }: { k: GlossaryKey; children?: ReactNode }) 
     if (!el) return
     const r = el.getBoundingClientRect()
     const width = Math.min(TIP_WIDTH, window.innerWidth - MARGIN * 2)
-    // Center under the icon, then keep it inside the screen
     const left = Math.min(
       Math.max(r.left + r.width / 2 - width / 2, MARGIN),
       window.innerWidth - width - MARGIN
     )
-    // Flip above the icon if there is no room below
     const above = r.bottom + TIP_HEIGHT_GUESS > window.innerHeight && r.top > TIP_HEIGHT_GUESS
     const y = above ? window.innerHeight - r.top + 8 : r.bottom + 8
     setPos({ left, width, above, y })
@@ -36,7 +34,6 @@ export function Term({ k, children }: { k: GlossaryKey; children?: ReactNode }) 
 
   const close = () => setOpen(false)
 
-  // Close on outside tap, scroll or resize
   useEffect(() => {
     if (!open) return
     const onPointer = (e: PointerEvent) => {
@@ -74,7 +71,7 @@ export function Term({ k, children }: { k: GlossaryKey; children?: ReactNode }) 
         whileHover={{ scale: 1.2 }}
         whileTap={{ scale: 0.9 }}
         transition={{ type: "spring", stiffness: 400, damping: 18 }}
-        className="inline-flex h-[18px] w-[18px] cursor-help items-center justify-center rounded-full bg-forest font-serif text-[11px] font-bold leading-none text-ivory shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-sage"
+        className="inline-flex h-[18px] w-[18px] cursor-help items-center justify-center rounded-full bg-[#8FB369]/20 border border-[#8FB369]/40 font-serif text-[11px] font-bold leading-none text-[#8FB369] shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[#8FB369]"
       >
         i
       </motion.button>
@@ -96,9 +93,9 @@ export function Term({ k, children }: { k: GlossaryKey; children?: ReactNode }) 
                 ...(pos.above ? { bottom: pos.y } : { top: pos.y }),
                 transformOrigin: pos.above ? "bottom center" : "top center",
               }}
-              className="pointer-events-none z-[100] rounded-xl bg-forest p-3 text-left text-sm font-normal leading-relaxed text-ivory shadow-xl"
+              className="pointer-events-none z-[100] rounded-xl bg-[#222D1F] border border-[#9AB383]/25 p-3 text-left text-xs font-normal leading-relaxed text-[#F2EFE9] shadow-2xl backdrop-blur-xl"
             >
-              <strong className="mb-1 block text-sage">{entry.label}</strong>
+              <strong className="mb-1 block text-[#8FB369]">{entry.label}</strong>
               {entry.text}
             </motion.div>
           )}

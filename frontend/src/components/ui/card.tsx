@@ -1,21 +1,38 @@
 import * as React from "react"
 import { cn } from "cn"
+import { useSpotlight } from "@/components/common/GlassCard"
 
 function Card({
   className,
   size = "default",
+  children,
   ...props
 }: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+  const spotlightRef = useSpotlight<HTMLDivElement>()
+
   return (
     <div
+      ref={spotlightRef}
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "group relative flex flex-col gap-(--card-spacing) overflow-hidden rounded-2xl border border-white/40 border-t-white/[0.85] bg-[#F2EDE2]/80 backdrop-blur-2xl py-(--card-spacing) text-sm text-[#1E241B] shadow-[0_4px_20px_rgba(42,38,30,0.06)] [--card-spacing:--spacing(4)] data-[size=sm]:[--card-spacing:--spacing(3)] transition-[border-color,box-shadow] duration-300 hover:border-white/70 hover:shadow-[0_20px_50px_rgba(42,38,30,0.12),inset_0_1px_0_rgba(255,255,255,0.5)]",
         className
       )}
       {...props}
-    />
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        style={{
+          background:
+            "radial-gradient(280px circle at var(--mx, 50%) var(--my, 50%), rgba(126,145,103,0.08), transparent 65%)",
+        }}
+      />
+      <div className="relative z-10 flex flex-col gap-(--card-spacing) h-full w-full">
+        {children}
+      </div>
+    </div>
   )
 }
 
@@ -37,7 +54,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-title"
       className={cn(
-        "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
+        "font-heading text-base leading-snug font-medium text-[#1E241B] group-data-[size=sm]/card:text-sm",
         className
       )}
       {...props}
@@ -49,7 +66,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-xs text-[#5C5A52]", className)}
       {...props}
     />
   )
@@ -82,10 +99,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-footer"
-      className={cn(
-        "flex items-center rounded-b-xl border-t bg-muted/50 p-(--card-spacing)",
-        className
-      )}
+      className={cn("flex items-center px-(--card-spacing)", className)}
       {...props}
     />
   )

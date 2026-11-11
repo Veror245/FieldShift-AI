@@ -1,17 +1,39 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
-import { motion } from "framer-motion"
-import { ArrowRight, FlaskConical, History } from "lucide-react"
+import { motion, type Variants } from "framer-motion"
+import { ArrowRightIcon, FlaskIcon, HistoryIcon } from "@/components/common/Icons"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader } from "@/components/common/PageHeader"
 import { Term } from "@/components/common/Term"
+import { LoadingState } from "@/components/common/LoadingState"
+import { ErrorState } from "@/components/common/ErrorState"
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber"
 import ClimateAnomalyChart from "@/charts/ClimateAnomalyChart"
-import { getClimateFindings } from "@/services/api"
-import { USE_MOCK } from "@/services/api"
+import { getClimateFindings, USE_MOCK } from "@/services/api"
 
-const clusterDot = ["bg-sage", "bg-forest/40", "bg-sun"]
+const clusterDot = ["bg-[#4E633D]", "bg-[#7E9167]", "bg-[#A66843]"]
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.055,
+      delayChildren: 0.04,
+    },
+  },
+}
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 12, filter: "blur(3px)" },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const },
+  },
+}
 
 export default function ClimateFindings() {
   const { data, isLoading, isError, refetch } = useQuery({
@@ -20,41 +42,43 @@ export default function ClimateFindings() {
   })
 
   return (
-    <>
-      <PageHeader
-        title="Climate Findings"
-        description={
-          <>
-            How your area&apos;s seasons have behaved over time, including{" "}
-            <Term k="rainfallAnomaly">unusual seasons</Term>.
-          </>
-        }
-      />
-
-      {USE_MOCK && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-sun/40 bg-sun/10 p-4 text-sm">
-          <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-sun" />
-          <p>
-            <strong>Demo data.</strong> These numbers are placeholders to preview the layout.
-            They are not real observations.
-          </p>
-        </div>
-      )}
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-4"
+    >
+      <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-between gap-3">
+        <PageHeader
+          title="Climate Findings"
+          description={
+            <>
+              Historical weather variability and{" "}
+              <Term k="rainfallAnomaly">unusual seasons</Term> over the last 10 years.
+            </>
+          }
+        />
+        {USE_MOCK && (
+          <div className="flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold bg-[#A66843]/15 border border-[#A66843]/35 text-[#A66843] shadow-sm">
+            <FlaskIcon className="h-3.5 w-3.5" />
+            <span>Simulated NASA POWER Data</span>
+          </div>
+        )}
+      </motion.div>
 
       {isLoading && (
-        <div className="space-y-4">
-          <Skeleton className="h-28 w-full rounded-2xl" />
-          <Skeleton className="h-80 w-full rounded-2xl" />
-        </div>
+        <LoadingState
+          message="Analyzing NASA climate records…"
+          subtext="Extracting historical precipitation and anomaly clusters"
+        />
       )}
 
       {isError && (
-        <Card className="rounded-2xl p-6 text-center">
-          <p className="mb-3 text-sm">Could not load climate findings.</p>
-          <Button onClick={() => refetch()} className="rounded-xl">
-            Try again
-          </Button>
-        </Card>
+        <ErrorState
+          title="Could not load climate findings"
+          message="Failed to retrieve seasonal weather observations. Check connection and retry."
+          onRetry={() => refetch()}
+        />
       )}
 
       {data && (() => {
@@ -64,113 +88,133 @@ export default function ClimateFindings() {
         const unusual = seasons.filter((s) => s.isAnomaly).length
 
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Card className="rounded-2xl p-5">
-                <p className="text-sm text-forest/60">Average seasonal rainfall</p>
-                <p className="mt-1 text-3xl font-bold">{avg} mm</p>
+          <motion.div variants={containerVariants} className="space-y-4">
+            <motion.div variants={itemVariants} className="grid gap-3 sm:grid-cols-3">
+              <Card className="rounded-2xl p-4">
+                <p className="text-xs text-[#5C5A52]">Average seasonal rainfall</p>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="text-2xl font-bold tracking-tight text-[#1E241B]">
+                    <AnimatedNumber value={avg} decimals={0} />
+                  </span>
+                  <span className="text-xs font-semibold text-[#5C5A52]">mm</span>
+                </div>
               </Card>
-              <Card className="rounded-2xl p-5">
-                <p className="text-sm text-forest/60">Driest season on record</p>
-                <p className="mt-1 text-3xl font-bold">{driest.year}</p>
-                <p className="text-xs text-forest/60">{driest.rainfallMm} mm</p>
-              </Card>
-              <Card className="rounded-2xl p-5">
-                <p className="text-sm text-forest/60">Unusual seasons</p>
-                <p className="mt-1 text-3xl font-bold">
-                  {unusual} <span className="text-lg font-medium text-forest/60">of {seasons.length}</span>
-                </p>
-              </Card>
-            </div>
 
-            <Card className="rounded-2xl p-5">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="font-semibold">{data.seasonLabel}</h2>
-                <div className="flex items-center gap-4 text-xs text-forest/70">
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-3 w-3 rounded bg-sage" /> Normal
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-3 w-3 rounded bg-sun" /> Unusual
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-0.5 w-4 bg-forest" /> Temperature
+              <Card className="rounded-2xl p-4">
+                <p className="text-xs text-[#5C5A52]">Driest season on record</p>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold tracking-tight text-[#1E241B]">{driest.year}</span>
+                  <span className="text-xs text-[#A66843] font-semibold">
+                    (<AnimatedNumber value={driest.rainfallMm} decimals={0} suffix=" mm" />)
                   </span>
                 </div>
-              </div>
-              <ClimateAnomalyChart seasons={seasons} />
-              <p className="mt-3 text-xs text-forest/60">
-                An unusual season means conditions differed from the historical pattern. It does
-                not prove a crop failed. {data.resolutionNote}
-              </p>
-            </Card>
+              </Card>
 
-            <div>
-              <h2 className="mb-3 font-semibold">Season fingerprints</h2>
-              <div className="grid gap-4 md:grid-cols-3">
-                {data.clusters.map((c, i) => {
-                  const count = seasons.filter((s) => s.cluster === c.id).length
-                  return (
-                    <motion.div
-                      key={c.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 * i }}
-                    >
-                      <Card className="h-full rounded-2xl p-5">
-                        <div className="mb-2 flex items-center gap-2">
-                          <span className={`h-3 w-3 rounded-full ${clusterDot[c.id] ?? "bg-sage"}`} />
-                          <h3 className="font-semibold">{c.name}</h3>
-                        </div>
-                        <p className="text-2xl font-bold">
-                          {count} <span className="text-sm font-medium text-forest/60">of {seasons.length} years</span>
-                        </p>
-                        <p className="mt-2 text-sm text-forest/70">{c.description}</p>
-                        <p className="mt-3 text-xs text-forest/50">
-                          {seasons.filter((s) => s.cluster === c.id).map((s) => s.year).join(", ")}
-                        </p>
-                      </Card>
-                    </motion.div>
-                  )
-                })}
-              </div>
-            </div>
+              <Card className="rounded-2xl p-4">
+                <p className="text-xs text-[#5C5A52]">Unusual weather anomalies</p>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="text-2xl font-bold tracking-tight text-[#A66843]">
+                    <AnimatedNumber value={unusual} decimals={0} />
+                  </span>
+                  <span className="text-xs font-medium text-[#5C5A52]">of {seasons.length} seasons</span>
+                </div>
+              </Card>
+            </motion.div>
 
-            <Card className="rounded-2xl border-sage bg-white p-5">
-              <div className="mb-2 flex items-center gap-2">
-                <History className="h-5 w-5 text-forest" />
-                <h2 className="font-semibold">Climate memory: {data.currentSeason.label}</h2>
-              </div>
-              <p className="mb-4 text-sm text-forest/80">{data.currentSeason.summary}</p>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {data.currentSeason.similar.map((s) => (
-                  <div key={s.year} className="rounded-xl bg-ivory p-4">
-                    <p className="text-xl font-bold">{s.year}</p>
-                    <p className="text-xs text-forest/70">{s.reason}</p>
+            <motion.div variants={itemVariants} className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
+              <div className="space-y-4">
+                <Card className="rounded-2xl p-4">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h2 className="font-semibold text-sm text-[#1E241B]">{data.seasonLabel}</h2>
+                      <p className="text-[11px] text-[#5C5A52]">Annual rainfall distribution & mean temperature curve</p>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-[#5C5A52]">
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded bg-[#4E633D]" /> Normal
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded bg-[#A66843]" /> Anomaly
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-0.5 w-3.5 bg-[#1E241B]" /> Temp
+                      </span>
+                    </div>
                   </div>
-                ))}
+
+                  <ClimateAnomalyChart seasons={seasons} />
+
+                  <p className="mt-2 text-[11px] text-[#7E7A6E] leading-relaxed">
+                    Condition anomalies reflect significant deviation from historical baseline. {data.resolutionNote}
+                  </p>
+                </Card>
+
+                <Card className="rounded-2xl p-4">
+                  <div className="mb-2 flex items-center gap-2">
+                    <HistoryIcon className="h-4 w-4 text-[#4E633D]" />
+                    <h2 className="font-semibold text-sm text-[#1E241B]">Climate memory: {data.currentSeason.label}</h2>
+                  </div>
+                  <p className="mb-3 text-xs text-[#5C5A52] leading-relaxed">{data.currentSeason.summary}</p>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {data.currentSeason.similar.map((s) => (
+                      <div
+                        key={s.year}
+                        className="rounded-xl bg-[#E8E2D4] border border-[#D4CCB9] p-2.5"
+                      >
+                        <span className="text-base font-bold text-[#1E241B]">{s.year}</span>
+                        <p className="text-[10px] text-[#5C5A52] leading-tight mt-0.5">{s.reason}</p>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
               </div>
-              <p className="mt-3 text-xs text-forest/60">
-                Similar seasons do not mean similar crop yields.
-              </p>
-            </Card>
 
-            <p className="text-xs text-forest/50">Source: {data.source}</p>
+              <div className="flex flex-col justify-between space-y-4">
+                <Card className="rounded-2xl p-4 flex-1">
+                  <h2 className="mb-1 font-semibold text-sm text-[#1E241B]">Seasonal Clusters (KMeans)</h2>
+                  <p className="mb-3 text-[11px] text-[#5C5A52]">Grouping 20-year NASA observations into climate typologies</p>
+                  <div className="space-y-2.5">
+                    {data.clusters.map((c) => {
+                      const count = seasons.filter((s) => s.cluster === c.id).length
+                      const pct = Math.round((count / seasons.length) * 100)
+                      return (
+                        <div
+                          key={c.id}
+                          className="rounded-xl border border-[#D4CCB9] bg-[#E8E2D4] p-3"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`h-2.5 w-2.5 rounded-full ${clusterDot[c.id] ?? "bg-[#4E633D]"}`} />
+                              <h3 className="font-semibold text-xs text-[#1E241B]">{c.name}</h3>
+                            </div>
+                            <span className="text-xs font-bold text-[#1E241B]">
+                              <AnimatedNumber value={count} decimals={0} suffix=" yrs" /> (<AnimatedNumber value={pct} decimals={0} suffix="%" />)
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#5C5A52] leading-relaxed">{c.description}</p>
+                          <p className="mt-1 text-[10px] text-[#7E7A6E] font-mono">
+                            {seasons.filter((s) => s.cluster === c.id).map((s) => s.year).join(", ")}
+                          </p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </Card>
 
-            <Button asChild className="h-12 rounded-xl">
-              <Link to="/strategies">
-                Continue to rotation strategies
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+                <div className="space-y-2">
+                  <Button asChild className="h-12 w-full rounded-xl bg-[#4E633D] text-[#F7F4EC] hover:bg-[#5D7749] shadow-lg hover:shadow-xl transition-all">
+                    <Link to="/strategies">
+                      Compare rotation strategies
+                      <ArrowRightIcon className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <p className="text-[10px] text-center text-[#7E7A6E]">Source: {data.source}</p>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         )
       })()}
-    </>
+    </motion.div>
   )
 }
