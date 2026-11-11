@@ -1,4 +1,6 @@
 from ..supervisor.state import InvestigationState, AgentName
+from langgraph.graph import END
+from langgraph.types import Send
 
 MAX_REVISIONS = 3
 
@@ -45,4 +47,34 @@ def supervisor_node(state: InvestigationState) -> dict:
             )
     
     return advance(next_action=["await_farmer"])
-      
+    
+    
+AGENT_NODES = {
+    AgentName.EARTH_OBS: "earth_obs",
+    AgentName.SOIL: "soil",
+    AgentName.CLIMATE: "climate",
+    AgentName.ROTATION: "rotation",
+    AgentName.RISK_AUDITOR: "risk_auditor",
+    AgentName.ADVISOR: "advisor",
+}
+
+def route_from_supervisor(state: InvestigationState):
+    actions = state.get("next_action", ["await_farmer"])
+
+    #agent targets, or control signlas like "await_farmer" or "finalize"
+    agent_targets = [AGENT_NODES[a] for a in actions if a in AGENT_NODES] # type: ignore
+    control_targets = [a for a in actions if a not in AGENT_NODES]
+
+    #return control sigals firsta lways
+    if control_targets:
+        control = control_targets[0]
+        if control == "finalize":
+            return END
+        return "await_farmer"   
+
+    #if single agent
+    if len(agent_targets) == 1:
+        return agent_targets[0]
+
+    #parallel agents
+    return [Send(target, state) for target in agent_targets]
