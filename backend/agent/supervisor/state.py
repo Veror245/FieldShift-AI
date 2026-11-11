@@ -1,7 +1,7 @@
 from typing import Annotated, Literal, TypedDict
 from enum import Enum
 
-from backend.schemas.models import Task
+from backend.schemas.models import Task, EarthObsResult
 
 class AgentName(str, Enum):
     SUPERVISOR = "supervisor"
@@ -35,7 +35,7 @@ class InvestigationState(TypedDict, total=False):
     curr_agent: list[AgentName]         
 
     # results
-    earth_obs: dict | None
+    earth_obs: EarthObsResult | None
     climate: dict | None
     agronomy: dict | None
     rotation: dict | None
