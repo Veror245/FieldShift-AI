@@ -1,7 +1,8 @@
-import type { ClimateFindings, Strategy } from "@/types/api"
+import type { ClimateFindings, Strategy, StrategyExplanation } from "@/types/api"
 import { mockStrategies } from "@/mocks/strategies"
 import { mockClimate } from "@/mocks/climate"
 import { defaultWeights, weightedScore, type Weights } from "@/lib/scoring"
+import { mockExplanations } from "@/mocks/explanations"
 
 export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false"
 export const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000"
@@ -47,3 +48,16 @@ export async function reviseStrategies(weights: Weights): Promise<Strategy[]> {
   if (!res.ok) throw new Error("Failed to revise strategies")
   return res.json()
 }
+export async function getExplanation(strategyId: string): Promise<StrategyExplanation> {
+  if (USE_MOCK) {
+    await wait(500)
+    const found = mockExplanations[strategyId]
+    if (!found) throw new Error("No explanation found")
+    return found
+  }
+  // Placeholder path: update it to match the backend teammate's endpoint
+  const res = await fetch(`${BASE_URL}/rotations/${strategyId}/explanation`)
+  if (!res.ok) throw new Error("Failed to load explanation")
+  return res.json()
+}
+

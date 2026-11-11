@@ -18,9 +18,10 @@ import StrategyCard from "@/rotation-studio/StrategyCard"
 import ComparisonTable from "@/rotation-studio/ComparisonTable"
 import PriorityPanel from "@/rotation-studio/PriorityPanel"
 import { getStrategies, reviseStrategies, USE_MOCK } from "@/services/api"
-import { defaultWeights, type Weights } from "@/lib/scoring"
+import { defaultWeights, weightsToScores, type Weights } from "@/lib/scoring"
 import { useFarmStore } from "@/store/useFarmStore"
 import type { Strategy } from "@/types/api"
+import WhyDrawer from "@/rotation-studio/WhyDrawer"
 
 const rankMap = (list: Strategy[]) =>
   Object.fromEntries(
@@ -33,12 +34,13 @@ export default function RotationStudio() {
     queryFn: getStrategies,
   })
   const { selectedStrategyId, selectStrategy } = useFarmStore()
-  const [pending, setPending] = useState<Strategy | null>(null)
+    const [explaining, setExplaining] = useState<Strategy | null>(null)
 
   const [weights, setWeights] = useState<Weights>(defaultWeights)
   const [applied, setApplied] = useState<Weights>(defaultWeights)
   const [revised, setRevised] = useState<Strategy[] | null>(null)
   const [prevRanks, setPrevRanks] = useState<Record<string, number>>({})
+   const [pending, setPending] = useState<Strategy | null>(null)
 
   const list = revised ?? data
   const ranks = list ? rankMap(list) : {}
@@ -121,6 +123,7 @@ export default function RotationStudio() {
           <div className="grid gap-6 md:grid-cols-2">
             {list.map((s, i) => (
               <StrategyCard
+                              
                 key={s.id}
                 strategy={s}
                 baseline={baseline}
@@ -130,6 +133,9 @@ export default function RotationStudio() {
                 index={i}
                 selected={s.id === selectedStrategyId}
                 onSelect={setPending}
+                priorities={weightsToScores(weights)}
+                onExplain={setExplaining}
+                
               />
             ))}
           </div>
@@ -163,7 +169,9 @@ export default function RotationStudio() {
             </Button>
           </DialogFooter>
         </DialogContent>
+         
       </Dialog>
+      <WhyDrawer strategy={explaining} onClose={() => setExplaining(null)} />
     </>
   )
 }
