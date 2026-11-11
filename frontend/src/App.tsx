@@ -6,6 +6,7 @@ import FieldExplorer from "@/pages/FieldExplorer"
 import MissionControl from "@/pages/MissionControl"
 import ClimateFindings from "@/pages/ClimateFindings"
 import PlaceholderPage from "@/pages/PlaceholderPage"
+import RotationStudio from "@/pages/RotationStudio"
 
 export default function App() {
   return (
@@ -17,10 +18,7 @@ export default function App() {
           <Route path="field" element={<FieldExplorer />} />
           <Route path="investigation" element={<MissionControl />} />
           <Route path="findings" element={<ClimateFindings />} />
-          <Route
-            path="strategies"
-            element={<PlaceholderPage title="Rotation Studio" description="Compare crop rotation strategies side by side." />}
-          />
+          <Route path="strategies" element={<RotationStudio />} />
           <Route
             path="scenarios"
             element={<PlaceholderPage title="Scenario Lab" description="Stress-test strategies against different weather. This is not a forecast." />}
