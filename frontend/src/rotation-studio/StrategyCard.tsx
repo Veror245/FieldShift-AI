@@ -1,10 +1,10 @@
 import type { ReactNode } from "react"
 import { motion } from "framer-motion"
-import { ArrowRight, BadgeCheck, Check, Info, Minus, ShieldAlert } from "lucide-react"
+import { ArrowRight, BadgeCheck, Check, Info, Lightbulb, Minus, ShieldAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import RotationRadar from "@/charts/RotationRadar"
-import type { Strategy } from "@/types/api"
+import type { Scores, Strategy } from "@/types/api"
 
 const kindMeta: Record<Strategy["kind"], { label: string; color: string }> = {
   baseline: { label: "Baseline", color: "#5F7A6B" },
@@ -43,23 +43,27 @@ function List({
 type Props = {
   strategy: Strategy
   baseline?: Strategy
+  priorities?: Scores
   rank: number
+  rankChange?: number
   total: number
   index: number
   selected: boolean
-  rankChange?: number
   onSelect: (s: Strategy) => void
+  onExplain: (s: Strategy) => void
 }
 
 export default function StrategyCard({
   strategy: s,
   baseline,
+  priorities,
   rank,
+  rankChange,
   total,
   index,
   selected,
-  rankChange,
   onSelect,
+  onExplain,
 }: Props) {
   const meta = kindMeta[s.kind]
   const isBaseline = s.kind === "baseline"
@@ -84,10 +88,7 @@ export default function StrategyCard({
             >
               {meta.label}
             </span>
-            <span className="text-xs text-forest/60">
-              Rank {rank} of {total}
-            </span>
-          </div>            <span className="flex items-center gap-1.5 text-xs text-forest/60">
+            <span className="flex items-center gap-1.5 text-xs text-forest/60">
               Rank {rank} of {total}
               {rankChange !== undefined && rankChange !== 0 && (
                 <span
@@ -99,6 +100,7 @@ export default function StrategyCard({
                 </span>
               )}
             </span>
+          </div>
           <h2 className="text-xl font-bold">{s.name}</h2>
         </div>
 
@@ -142,11 +144,12 @@ export default function StrategyCard({
           <RotationRadar
             scores={s.scores}
             baseline={isBaseline ? undefined : baseline?.scores}
+            priorities={priorities}
             color={meta.color}
           />
-          {!isBaseline && (
-            <p className="text-center text-xs text-forest/50">Dashed outline = your existing rotation</p>
-          )}
+          <p className="text-center text-xs text-forest/50">
+            {!isBaseline && "Sage dashed = existing rotation · "}Orange dotted = your priorities
+          </p>
         </div>
 
         <List title="Benefits" items={s.benefits} icon={<Check className="h-4 w-4 text-forest" />} />
@@ -170,7 +173,15 @@ export default function StrategyCard({
           </div>
         )}
 
-        <div className="mt-auto pt-2">
+        <div className="mt-auto space-y-2 pt-2">
+          <Button
+            variant="outline"
+            onClick={() => onExplain(s)}
+            className="h-12 w-full rounded-xl"
+          >
+            <Lightbulb className="mr-2 h-4 w-4" />
+            Why this strategy?
+          </Button>
           <Button
             onClick={() => onSelect(s)}
             variant={selected ? "secondary" : "default"}

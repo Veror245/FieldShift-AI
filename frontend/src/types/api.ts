@@ -70,3 +70,30 @@ export type ClimateFindings = {
   source: string
   resolutionNote: string
 }
+
+export type EvidenceKind = "observation" | "derived" | "ml" | "agronomy" | "farmer" | "llm"
+
+export type EvidenceRecord = {
+  id: string
+  kind: EvidenceKind
+  title: string
+  dataset: string
+  date: string
+  resolution: string
+  note?: string
+}
+
+export type Cited = { text: string; evidenceIds: string[] }
+
+export type Level = "high" | "medium" | "low"
+
+export type StrategyExplanation = {
+  strategyId: string
+  why: Cited
+  observations: Cited
+  soil: Cited
+  crops: Cited
+  confidence: { completeness: Level; recency: Level; resolution: Level; note: string }
+  limitations: string[]
+  evidence: EvidenceRecord[]
+}

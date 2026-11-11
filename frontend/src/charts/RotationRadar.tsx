@@ -12,14 +12,16 @@ import { scoreMeta } from "@/lib/scoreLabels"
 type Props = {
   scores: Scores
   baseline?: Scores
+  priorities?: Scores
   color?: string
 }
 
-export default function RotationRadar({ scores, baseline, color = "#1E3A2F" }: Props) {
+export default function RotationRadar({ scores, baseline, priorities, color = "#1E3A2F" }: Props) {
   const data = scoreMeta.map((m) => ({
     axis: m.short,
     value: scores[m.key],
     baseline: baseline ? baseline[m.key] : undefined,
+    priority: priorities ? priorities[m.key] : undefined,
   }))
 
   return (
@@ -34,6 +36,16 @@ export default function RotationRadar({ scores, baseline, color = "#1E3A2F" }: P
               dataKey="baseline"
               stroke="#8FA89B"
               strokeDasharray="4 4"
+              strokeWidth={2}
+              fill="none"
+              isAnimationActive={false}
+            />
+          )}
+          {priorities && (
+            <Radar
+              dataKey="priority"
+              stroke="#E08E45"
+              strokeDasharray="2 3"
               strokeWidth={2}
               fill="none"
               isAnimationActive={false}
