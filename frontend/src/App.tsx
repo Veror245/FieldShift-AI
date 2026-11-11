@@ -7,6 +7,8 @@ import MissionControl from "@/pages/MissionControl"
 import ClimateFindings from "@/pages/ClimateFindings"
 import RotationStudio from "@/pages/RotationStudio"
 import ScenarioLab from "@/pages/ScenarioLab"
+import SeasonalCalendar from "@/pages/SeasonalCalendar"
+import FieldWatch from "@/pages/FieldWatch"
 import PlaceholderPage from "@/pages/PlaceholderPage"
 
 export default function App() {
@@ -21,14 +23,8 @@ export default function App() {
           <Route path="findings" element={<ClimateFindings />} />
           <Route path="strategies" element={<RotationStudio />} />
           <Route path="scenarios" element={<ScenarioLab />} />
-          <Route
-            path="calendar"
-            element={<PlaceholderPage title="Seasonal Calendar" description="Sowing, growth, harvest and bare-field windows." />}
-          />
-          <Route
-            path="watch"
-            element={<PlaceholderPage title="Field Watch" description="Set up monitoring rules and review alerts." />}
-          />
+          <Route path="calendar" element={<SeasonalCalendar />} />
+          <Route path="watch" element={<FieldWatch />} />
           <Route
             path="reports"
             element={<PlaceholderPage title="Reports" description="Export evidence-backed assessments." />}
