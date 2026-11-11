@@ -44,4 +44,8 @@ class InvestigationState(TypedDict, total=False):
 
     approval: Literal["pending", "approved", "revise"]
     
+    step_count: int
+    revision_count: int
+    max_steps: int
+    
 
