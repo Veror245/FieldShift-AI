@@ -21,11 +21,17 @@ class EarthObsResult(BaseModel):
     n_days: int
 
     csv_file_path: str = Field(..., description="Local path or s3:// URI")
-    columns: dict[str, str] = Field(
-        default_factory=dict,
-        description="CSV column name -> human-readable description with units",
-    )
-
+    
+    columns: dict[str, str] = Field(default={
+        "T2M": "mean temperature, °C",
+        "T2M_MAX": "max temperature, °C",
+        "T2M_MIN": "min temperature, °C",
+        "PRECTOTCORR": "precipitation, mm/day",
+        "ALLSKY_SFC_SW_DWN": "solar radiation, MJ/m²/day",
+        "RH2M": "relative humidity, %",
+        "WS2M": "wind speed, m/s",
+    })
+    
     temperature_c: float | None = Field(None, description="Mean temperature, °C")
     humidity_pct: float | None = Field(None, description="Mean relative humidity, %")
     wind_speed_ms: float | None = Field(None, description="Mean wind speed, m/s")
