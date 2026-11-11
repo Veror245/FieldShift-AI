@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { FlaskConical, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -16,9 +16,16 @@ import {
 import { PageHeader } from "@/components/common/PageHeader"
 import StrategyCard from "@/rotation-studio/StrategyCard"
 import ComparisonTable from "@/rotation-studio/ComparisonTable"
-import { getStrategies, USE_MOCK } from "@/services/api"
+import PriorityPanel from "@/rotation-studio/PriorityPanel"
+import { getStrategies, reviseStrategies, USE_MOCK } from "@/services/api"
+import { defaultWeights, type Weights } from "@/lib/scoring"
 import { useFarmStore } from "@/store/useFarmStore"
 import type { Strategy } from "@/types/api"
+
+const rankMap = (list: Strategy[]) =>
+  Object.fromEntries(
+    [...list].sort((a, b) => b.overallScore - a.overallScore).map((s, i) => [s.id, i + 1])
+  ) as Record<string, number>
 
 export default function RotationStudio() {
   const { data, isLoading, isError, refetch } = useQuery({
@@ -28,9 +35,27 @@ export default function RotationStudio() {
   const { selectedStrategyId, selectStrategy } = useFarmStore()
   const [pending, setPending] = useState<Strategy | null>(null)
 
-  const baseline = data?.find((s) => s.kind === "baseline")
-  const ranked = data ? [...data].sort((a, b) => b.overallScore - a.overallScore) : []
-  const selected = data?.find((s) => s.id === selectedStrategyId)
+  const [weights, setWeights] = useState<Weights>(defaultWeights)
+  const [applied, setApplied] = useState<Weights>(defaultWeights)
+  const [revised, setRevised] = useState<Strategy[] | null>(null)
+  const [prevRanks, setPrevRanks] = useState<Record<string, number>>({})
+
+  const list = revised ?? data
+  const ranks = list ? rankMap(list) : {}
+  const baseline = list?.find((s) => s.kind === "baseline")
+  const selected = list?.find((s) => s.id === selectedStrategyId)
+  const dirty = JSON.stringify(weights) !== JSON.stringify(applied)
+
+  const revise = useMutation({
+    mutationFn: reviseStrategies,
+    onSuccess: (next) => {
+      if (list) setPrevRanks(rankMap(list))
+      setRevised(next)
+      setApplied(weights)
+      toast.success("Strategies revised with your priorities.")
+    },
+    onError: () => toast.error("Could not revise strategies. Please try again."),
+  })
 
   const confirm = () => {
     if (!pending) return
@@ -50,8 +75,9 @@ export default function RotationStudio() {
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-sun/40 bg-sun/10 p-4 text-sm">
           <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-sun" />
           <p>
-            <strong>Demo data.</strong> Scores and crops are placeholders to preview the layout.
-            They are not real recommendations.
+            <strong>Demo data.</strong> Scores and crops are placeholders. Revising uses a simple
+            weighted average of those placeholders to preview the interaction. These are not real
+            recommendations.
           </p>
         </div>
       )}
@@ -82,16 +108,25 @@ export default function RotationStudio() {
         </Card>
       )}
 
-      {data && (
+      {list && (
         <div className="space-y-8">
+          <PriorityPanel
+            weights={weights}
+            onChange={setWeights}
+            onRevise={() => revise.mutate(weights)}
+            revising={revise.isPending}
+            dirty={dirty}
+          />
+
           <div className="grid gap-6 md:grid-cols-2">
-            {data.map((s, i) => (
+            {list.map((s, i) => (
               <StrategyCard
                 key={s.id}
                 strategy={s}
                 baseline={baseline}
-                rank={ranked.findIndex((r) => r.id === s.id) + 1}
-                total={data.length}
+                rank={ranks[s.id]}
+                rankChange={prevRanks[s.id] ? prevRanks[s.id] - ranks[s.id] : 0}
+                total={list.length}
                 index={i}
                 selected={s.id === selectedStrategyId}
                 onSelect={setPending}
@@ -99,7 +134,7 @@ export default function RotationStudio() {
             ))}
           </div>
 
-          <ComparisonTable strategies={data} />
+          <ComparisonTable strategies={list} />
 
           <p className="text-xs text-forest/50">
             Scores compare these options against each other using the available evidence. They do

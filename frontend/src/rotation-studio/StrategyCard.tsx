@@ -47,6 +47,7 @@ type Props = {
   total: number
   index: number
   selected: boolean
+  rankChange?: number
   onSelect: (s: Strategy) => void
 }
 
@@ -57,6 +58,7 @@ export default function StrategyCard({
   total,
   index,
   selected,
+  rankChange,
   onSelect,
 }: Props) {
   const meta = kindMeta[s.kind]
@@ -85,7 +87,18 @@ export default function StrategyCard({
             <span className="text-xs text-forest/60">
               Rank {rank} of {total}
             </span>
-          </div>
+          </div>            <span className="flex items-center gap-1.5 text-xs text-forest/60">
+              Rank {rank} of {total}
+              {rankChange !== undefined && rankChange !== 0 && (
+                <span
+                  className={`rounded-full px-1.5 py-0.5 font-semibold ${
+                    rankChange > 0 ? "bg-sage/30 text-forest" : "bg-sun/15 text-sun"
+                  }`}
+                >
+                  {rankChange > 0 ? `↑${rankChange}` : `↓${Math.abs(rankChange)}`}
+                </span>
+              )}
+            </span>
           <h2 className="text-xl font-bold">{s.name}</h2>
         </div>
 
