@@ -19,6 +19,9 @@ def _merge_tasks(left: list[Task], right: list[Task]):
 
 
 class InvestigationState(TypedDict, total=False):
+    
+    investigation_id: str
+    
     #farmer stuff
     objectives: str
     priorities: dict[str, float]

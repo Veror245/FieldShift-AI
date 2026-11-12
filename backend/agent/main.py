@@ -1,6 +1,9 @@
 from langgraph.graph import START, END, StateGraph
 from ..agent.supervisor.state import InvestigationState, AgentName
 from ..agent.supervisor.graph import supervisor_node, AGENT_NODES, route_from_supervisor
+from ..agent.earth_obser.graph import earth_obs_node
+
+import asyncio
 
 
 def stub_earth_obs(state): return {"earth_obs": {"stub": True}}
@@ -15,7 +18,7 @@ def join_evidence_node(state: InvestigationState) -> dict:
 graph = StateGraph(InvestigationState)
 
 graph.add_node("supervisor", supervisor_node)
-graph.add_node("earth_obs", stub_earth_obs)
+graph.add_node("earth_obs", earth_obs_node)
 graph.add_node("soil", stub_soil)
 graph.add_node("climate", stub_climate)
 graph.add_node("rotation", stub_rotation)
@@ -48,14 +51,25 @@ graph.add_conditional_edges(
     },
 )
 
+
+
 if __name__ == "__main__":
+    
     app = graph.compile()
     
-    result = app.invoke({"objectives": "reduce water, improve soil"})
-    print(result)
+    async def main():
+        result = await app.ainvoke({
+            "objectives": "reduce water, improve soil",
+            "investigation_id": "test-001",
+            "centroid_lat": 31.52,
+            "centroid_lon": 74.35,
+        })
+        print(result)
+    
+    asyncio.run(main())
    
-    png = app.get_graph().draw_mermaid_png()
+    # png = app.get_graph().draw_mermaid_png()
 
-    with open("graph.png", "wb") as f:
-        f.write(png)
+    # with open("graph.png", "wb") as f:
+    #     f.write(png)
 
