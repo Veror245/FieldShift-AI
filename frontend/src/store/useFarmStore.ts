@@ -8,8 +8,10 @@ type FarmState = {
   hectares: number
   profile: FarmProfile | null
   selectedStrategyId: string | null
-  setField: (polygon: FieldPolygon | null, hectares: number) => void
+  locationAddress: string | null
+  setField: (polygon: FieldPolygon | null, hectares: number, locationAddress?: string | null) => void
   setProfile: (profile: FarmProfile) => void
+  setLocationAddress: (locationAddress: string | null) => void
   selectStrategy: (id: string | null) => void
   resetFarm: () => void
 }
@@ -21,11 +23,18 @@ export const useFarmStore = create<FarmState>()(
       hectares: 0,
       profile: null,
       selectedStrategyId: null,
-      setField: (polygon, hectares) => set({ polygon, hectares }),
+      locationAddress: null,
+      setField: (polygon, hectares, locationAddress) =>
+        set((state) => ({
+          polygon,
+          hectares,
+          locationAddress: locationAddress !== undefined ? locationAddress : state.locationAddress,
+        })),
       setProfile: (profile) => set({ profile }),
+      setLocationAddress: (locationAddress) => set({ locationAddress }),
       selectStrategy: (id) => set({ selectedStrategyId: id }),
       resetFarm: () =>
-        set({ polygon: null, hectares: 0, profile: null, selectedStrategyId: null }),
+        set({ polygon: null, hectares: 0, profile: null, selectedStrategyId: null, locationAddress: null }),
     }),
     { name: "fieldshift-farm" }
   )

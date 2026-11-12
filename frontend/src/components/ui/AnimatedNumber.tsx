@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react"
+import { useMemo } from "react"
+import { motion } from "framer-motion"
 
 interface AnimatedNumberProps {
   value: number
@@ -9,67 +10,63 @@ interface AnimatedNumberProps {
   className?: string
 }
 
-function easeOutQuart(t: number): number {
-  return 1 - Math.pow(1 - t, 4)
-}
+const DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+const digitSpring = { type: "spring", stiffness: 300, damping: 28 } as const
 
 export function AnimatedNumber({
   value,
   decimals = 0,
-  duration = 650,
   prefix = "",
   suffix = "",
   className = "",
 }: AnimatedNumberProps) {
-  const [displayValue, setDisplayValue] = useState<number>(0)
-  const prevValueRef = useRef<number>(0)
-  const startTimeRef = useRef<number | null>(null)
-  const frameRef = useRef<number | null>(null)
-
-  useEffect(() => {
-    const startVal = prevValueRef.current
-    const targetVal = Number.isFinite(value) ? value : 0
-    const change = targetVal - startVal
-    startTimeRef.current = null
-
-    if (duration <= 0 || change === 0) {
-      setDisplayValue(targetVal)
-      prevValueRef.current = targetVal
-      return
-    }
-
-    const step = (timestamp: number) => {
-      if (!startTimeRef.current) startTimeRef.current = timestamp
-      const elapsed = timestamp - startTimeRef.current
-      const progress = Math.min(elapsed / duration, 1)
-      const easedProgress = easeOutQuart(progress)
-      const current = startVal + change * easedProgress
-
-      setDisplayValue(current)
-
-      if (progress < 1) {
-        frameRef.current = requestAnimationFrame(step)
-      } else {
-        setDisplayValue(targetVal)
-        prevValueRef.current = targetVal
-      }
-    }
-
-    frameRef.current = requestAnimationFrame(step)
-
-    return () => {
-      if (frameRef.current) cancelAnimationFrame(frameRef.current)
-    }
-  }, [value, duration])
+  const text = useMemo(() => {
+    const v = Number.isFinite(value) ? value : 0
+    return v.toLocaleString(undefined, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    })
+  }, [value, decimals])
 
   return (
-    <span className={className}>
-      {prefix}
-      {displayValue.toLocaleString(undefined, {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      })}
-      {suffix}
+    <span className={`inline-flex items-baseline tabular-nums ${className}`}>
+      {prefix && <span className="whitespace-pre">{prefix}</span>}
+      <span className="inline-flex items-baseline">
+        {text.split("").map((ch, i) => {
+          if (ch >= "0" && ch <= "9") {
+            const d = Number(ch)
+            return (
+              <span
+                key={i}
+                className="inline-block overflow-hidden align-baseline"
+                style={{ height: "1em" }}
+                aria-hidden
+              >
+                <motion.span
+                  className="flex flex-col"
+                  initial={{ y: "0em" }}
+                  animate={{ y: `${-d}em` }}
+                  transition={digitSpring}
+                >
+                  {DIGITS.map((n) => (
+                    <span key={n} style={{ height: "1em", lineHeight: 1 }}>
+                      {n}
+                    </span>
+                  ))}
+                </motion.span>
+              </span>
+            )
+          }
+          return (
+            <span key={i} className="whitespace-pre">
+              {ch}
+            </span>
+          )
+        })}
+      </span>
+      {suffix && <span className="whitespace-pre">{suffix}</span>}
+      <span className="sr-only">{text}</span>
     </span>
   )
 }

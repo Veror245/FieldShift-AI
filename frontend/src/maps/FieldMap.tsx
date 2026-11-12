@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { uiSoundEngine } from "@/utils/uiSoundEngine"
 import { initSatelliteTileProtocol, prewarmWestBengalTiles } from "@/utils/satelliteTileCache"
+import { reverseGeocode, computePolygonCentroid } from "@/utils/reverseGeocode"
 import type { FieldPolygon } from "@/types/geojson"
 
 initSatelliteTileProtocol(maplibregl)
@@ -28,24 +29,26 @@ const mapStyle: maplibregl.StyleSpecification = {
     satellite: {
       type: "raster",
       tiles: [
-        "cached-sat://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?blankTile=false",
-        "cached-sat://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?blankTile=false",
+        "cached-sat://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
+        "cached-sat://mt1.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
+        "cached-sat://mt2.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
+        "cached-sat://mt3.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
       ],
       tileSize: 256,
-      maxzoom: 18,
-      attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
+      maxzoom: 20,
+      attribution: "© Google Imagery (Enhanced 2X HD)",
     },
     streets: {
       type: "raster",
       tiles: [
-        "cached-sat://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}",
-        "cached-sat://mt1.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}",
-        "cached-sat://mt2.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}",
-        "cached-sat://mt3.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}",
+        "cached-sat://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&scale=2",
+        "cached-sat://mt1.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&scale=2",
+        "cached-sat://mt2.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&scale=2",
+        "cached-sat://mt3.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&scale=2",
       ],
       tileSize: 256,
       maxzoom: 20,
-      attribution: "© Google Maps",
+      attribution: "© Google Maps (Enhanced 2X HD)",
     },
   },
   layers: [
@@ -55,6 +58,9 @@ const mapStyle: maplibregl.StyleSpecification = {
       source: "satellite",
       paint: {
         "raster-fade-duration": 0,
+        "raster-resampling": "linear",
+        "raster-saturation": 0.28,
+        "raster-contrast": 0.1,
       },
     },
     {
@@ -64,6 +70,9 @@ const mapStyle: maplibregl.StyleSpecification = {
       layout: { visibility: "none" },
       paint: {
         "raster-fade-duration": 0,
+        "raster-resampling": "linear",
+        "raster-saturation": 0.15,
+        "raster-contrast": 0.05,
       },
     },
   ],
@@ -87,7 +96,7 @@ function formatDist(meters: number): string {
 
 type Props = {
   initialPolygon?: FieldPolygon | null
-  onChange: (polygon: FieldPolygon | null, hectares: number) => void
+  onChange: (polygon: FieldPolygon | null, hectares: number, address?: string | null) => void
 }
 
 export default function FieldMap({ initialPolygon, onChange }: Props) {
@@ -100,6 +109,7 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
   const [drawing, setDrawing] = useState(false)
   const [query, setQuery] = useState("")
   const [message, setMessage] = useState("")
+  const [fieldAddress, setFieldAddress] = useState<string | null>(null)
   const [livePoints, setLivePoints] = useState<[number, number][]>([])
   const [redoStack, setRedoStack] = useState<[number, number][]>([])
   const [liveHectares, setLiveHectares] = useState<number>(0)
@@ -146,6 +156,26 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
   useEffect(() => {
     onChangeRef.current = onChange
   }, [onChange])
+
+  useEffect(() => {
+    if (savedCoords.length >= 3) {
+      const [cLng, cLat] = computePolygonCentroid(savedCoords)
+      reverseGeocode(cLng, cLat).then((res) => {
+        setFieldAddress(res.formatted)
+        const poly: FieldPolygon = {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [[...savedCoords, savedCoords[0]]],
+          },
+          properties: {},
+        }
+        onChangeRef.current(poly, savedHa, res.formatted)
+      })
+    } else {
+      setFieldAddress(null)
+    }
+  }, [savedCoords, savedHa])
 
   const projectPoints = useCallback(() => {
     const map = mapRef.current
@@ -414,6 +444,12 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
     const ha = area(finalPoly as unknown as Parameters<typeof area>[0]) / 10000
     onChangeRef.current(finalPoly, ha)
 
+    const [cLng, cLat] = computePolygonCentroid(pts)
+    reverseGeocode(cLng, cLat).then((res) => {
+      setFieldAddress(res.formatted)
+      onChangeRef.current(finalPoly, ha, res.formatted)
+    })
+
     uiSoundEngine.playTick(1.3)
     setSavedCoords(pts)
     setSavedHa(ha)
@@ -557,7 +593,8 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
     setProspectiveHa(0)
     setSavedHa(0)
     setMessage("")
-    onChange(null, 0)
+    setFieldAddress(null)
+    onChange(null, 0, null)
   }
 
   const search = async (e: { preventDefault: () => void }) => {
@@ -850,17 +887,24 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
       </AnimatePresence>
 
       {!drawing && savedCoords.length >= 3 && (
-        <div className="absolute top-16 left-3 z-20 flex items-center gap-2 rounded-xl bg-[rgba(34,32,28,0.88)] backdrop-blur-xl px-3.5 py-2 text-xs font-semibold text-[#F4F0E6] shadow-md border border-[rgba(230,224,210,0.22)]">
-          <MapPinIcon className="h-4 w-4 text-blue-400" />
-          <span>Active boundary • {savedHa.toFixed(2)} ha ({savedCoords.length} corners)</span>
-          <button
-            type="button"
-            onClick={resumeDrawing}
-            className="ml-2 px-3 py-1 rounded-lg bg-[#5E7A46] text-[#F7F4EC] hover:bg-[#6E8F53] text-[11px] font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-          >
-            <PlusIcon className="h-3.5 w-3.5" />
-            Add corners
-          </button>
+        <div className="absolute top-16 left-3 z-20 flex flex-col gap-1 rounded-xl bg-[rgba(34,32,28,0.88)] backdrop-blur-xl px-3.5 py-2 text-xs font-semibold text-[#F4F0E6] shadow-md border border-[rgba(230,224,210,0.22)]">
+          <div className="flex items-center gap-2">
+            <MapPinIcon className="h-4 w-4 text-[#7E9867]" />
+            <span>Active boundary • {savedHa.toFixed(2)} ha ({savedCoords.length} corners)</span>
+            <button
+              type="button"
+              onClick={resumeDrawing}
+              className="ml-2 px-3 py-1 rounded-lg bg-[#5E7A46] text-[#F7F4EC] hover:bg-[#6E8F53] text-[11px] font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+            >
+              <PlusIcon className="h-3.5 w-3.5" />
+              Add corners
+            </button>
+          </div>
+          {fieldAddress && (
+            <div className="flex items-center gap-1.5 text-[11px] text-[#C9C0AC] font-medium pl-6">
+              <span className="truncate max-w-[320px] sm:max-w-[460px]">{fieldAddress}</span>
+            </div>
+          )}
         </div>
       )}
 

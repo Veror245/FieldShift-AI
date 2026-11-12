@@ -1,14 +1,10 @@
 import type { NewWatchRule, WatchAlert, WatchRule } from "@/types/watch"
-
 const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString()
-
-// DEMO DATA ONLY. This is an in-memory stand-in for the backend database.
 let rules: WatchRule[] = [
   { id: "r1", name: "Low rainfall watch", metric: "rainfall", threshold: 20, windowDays: 30, enabled: true },
   { id: "r2", name: "Soil-moisture watch", metric: "soilMoisture", threshold: 25, windowDays: 14, enabled: true },
   { id: "r3", name: "Heat spell watch", metric: "heat", threshold: 40, windowDays: 5, enabled: false },
 ]
-
 let alerts: WatchAlert[] = [
   {
     id: "a1",
@@ -45,7 +41,6 @@ let alerts: WatchAlert[] = [
     status: "reviewed",
   },
 ]
-
 export const mockWatch = {
   rules: (): WatchRule[] => rules.map((r) => ({ ...r })),
   addRule: (r: NewWatchRule): WatchRule => {

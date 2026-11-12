@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { motion } from "framer-motion"
 import { FlaskConical, Sprout } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -8,6 +9,7 @@ import { PageHeader } from "@/components/common/PageHeader"
 import SeasonalTimeline, { TimelineLegend } from "@/charts/SeasonalTimeline"
 import { monthsOf } from "@/lib/calendar"
 import { getSeasonalCalendar, USE_MOCK } from "@/services/api"
+import { pageContainer, pageItem, softSpring } from "@/lib/motion"
 
 export default function CalendarPage() {
   const [months, setMonths] = useState<12 | 24>(24)
@@ -17,20 +19,25 @@ export default function CalendarPage() {
   })
 
   return (
-    <>
-      <PageHeader
-        title="Seasonal Calendar"
-        description="When each rotation is sown, grows, is harvested, and leaves the field bare."
-      />
+    <motion.div variants={pageContainer} initial="hidden" animate="visible">
+      <motion.div variants={pageItem}>
+        <PageHeader
+          title="Seasonal Calendar"
+          description="When each rotation is sown, grows, is harvested, and leaves the field bare."
+        />
+      </motion.div>
 
       {USE_MOCK && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-sun/40 bg-sun/10 p-4 text-sm">
+        <motion.div
+          variants={pageItem}
+          className="mb-6 flex items-start gap-3 rounded-2xl border border-sun/40 bg-sun/10 p-4 text-sm"
+        >
           <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-sun" />
           <p>
             <strong>Demo data.</strong> Timings are placeholders, not verified planting windows for
             your region. Check real dates with a local agricultural expert.
           </p>
-        </div>
+        </motion.div>
       )}
 
       {isLoading && <Skeleton className="h-96 rounded-2xl" />}
@@ -45,7 +52,7 @@ export default function CalendarPage() {
       )}
 
       {data && (
-        <div className="space-y-6">
+        <motion.div variants={pageItem} className="space-y-6">
           <Card className="rounded-2xl p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <TimelineLegend />
@@ -54,12 +61,20 @@ export default function CalendarPage() {
                   <button
                     key={m}
                     type="button"
+                    data-months-toggle={m}
                     onClick={() => setMonths(m)}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                      months === m ? "bg-forest text-ivory" : "text-forest/70"
+                    className={`relative rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                      months === m ? "text-ivory" : "text-forest/70"
                     }`}
                   >
-                    {m} months
+                    {months === m && (
+                      <motion.span
+                        layoutId="cal-range-pill"
+                        transition={softSpring}
+                        className="absolute inset-0 rounded-lg bg-forest"
+                      />
+                    )}
+                    <span className="relative z-10">{m} months</span>
                   </button>
                 ))}
               </div>
@@ -99,8 +114,8 @@ export default function CalendarPage() {
           </Card>
 
           <p className="text-xs text-forest/50">Source: {data.source}</p>
-        </div>
+        </motion.div>
       )}
-    </>
+    </motion.div>
   )
 }

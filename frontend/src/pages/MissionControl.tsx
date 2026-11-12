@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom"
-import { motion, type Variants } from "framer-motion"
+import { motion } from "framer-motion"
 import { ArrowRightIcon, FlaskIcon, RotateCcwIcon } from "@/components/common/Icons"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/common/PageHeader"
@@ -9,27 +9,7 @@ import EventTerminal from "@/agent-control/EventTerminal"
 import { agents } from "@/agent-control/agents"
 import { useInvestigationStream } from "@/hooks/useInvestigationStream"
 import { useFarmStore } from "@/store/useFarmStore"
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.055,
-      delayChildren: 0.04,
-    },
-  },
-}
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 12, filter: "blur(3px)" },
-  visible: {
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const },
-  },
-}
+import { pageContainer, pageItem } from "@/lib/motion"
 
 export default function MissionControl() {
   const navigate = useNavigate()
@@ -46,12 +26,12 @@ export default function MissionControl() {
 
   return (
     <motion.div
-      variants={containerVariants}
+      variants={pageContainer}
       initial="hidden"
       animate="visible"
       className="space-y-4"
     >
-      <motion.div variants={itemVariants}>
+      <motion.div variants={pageItem}>
         <PageHeader
           title="Mission Control"
           description="Watch the agents investigate your field, step by step."
@@ -60,7 +40,7 @@ export default function MissionControl() {
 
       {isDemo && (
         <motion.div
-          variants={itemVariants}
+          variants={pageItem}
           className="mb-4 flex items-start gap-3 rounded-2xl bg-[#A66843]/15 border border-[#A66843]/35 p-4 text-sm text-[#1E241B] shadow-sm"
         >
           <FlaskIcon className="mt-0.5 h-5 w-5 shrink-0 text-[#A66843]" />
@@ -73,7 +53,7 @@ export default function MissionControl() {
       )}
 
       {!profile && (
-        <motion.p variants={itemVariants} className="mb-4 text-sm text-[#5C5A52]">
+        <motion.p variants={pageItem} className="mb-4 text-sm text-[#5C5A52]">
           No farm details yet.{" "}
           <Link to="/field" className="font-semibold text-[#4E633D] underline">
             Draw a field and fill in the form first.
@@ -81,7 +61,7 @@ export default function MissionControl() {
         </motion.p>
       )}
       {profile && (
-        <motion.p variants={itemVariants} className="mb-4 text-sm text-[#5C5A52]">
+        <motion.p variants={pageItem} className="mb-4 text-sm text-[#5C5A52]">
           Investigating <strong className="text-[#1E241B]">{profile.farmName}</strong>
           {hectares > 0 && (
             <> (<AnimatedNumber value={hectares} decimals={2} suffix=" ha" />)</>
@@ -89,7 +69,7 @@ export default function MissionControl() {
         </motion.p>
       )}
 
-      <motion.div variants={itemVariants} className="mb-6">
+      <motion.div variants={pageItem} className="mb-6">
         <div className="mb-2 flex justify-between text-sm">
           <span className="font-semibold text-[#1E241B]">
             {status === "done" ? "Investigation complete" : status === "error" ? "Connection lost" : "Investigating…"}
@@ -107,12 +87,12 @@ export default function MissionControl() {
         </div>
       </motion.div>
 
-      <motion.div variants={itemVariants} className="grid gap-6 lg:grid-cols-2">
+      <motion.div variants={pageItem} className="grid gap-6 lg:grid-cols-2">
         <AgentStepper events={events} />
         <EventTerminal events={events} />
       </motion.div>
 
-      <motion.div variants={itemVariants} className="mt-6 flex flex-wrap gap-3">
+      <motion.div variants={pageItem} className="mt-6 flex flex-wrap gap-3">
         <Button
           variant="secondary"
           onClick={restart}

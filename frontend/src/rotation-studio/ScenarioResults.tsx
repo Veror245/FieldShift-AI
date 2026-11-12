@@ -1,6 +1,7 @@
 import { motion } from "framer-motion"
 import { ArrowDown, ArrowUp, Minus } from "lucide-react"
 import { Card } from "@/components/ui/card"
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber"
 import RotationRadar from "@/charts/RotationRadar"
 import { scoreMeta } from "@/lib/scoreLabels"
 import type { Strategy } from "@/types/api"
@@ -97,7 +98,9 @@ export default function ScenarioResults({ result }: { result: ScenarioResult }) 
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-xl font-bold">{r.overallScore}</p>
+                    <p className="text-xl font-bold">
+                      <AnimatedNumber value={r.overallScore} decimals={0} />
+                    </p>
                     <p className="text-xs text-forest/60">
                       was {r.baselineOverall} · <Delta value={r.overallScore - r.baselineOverall} />
                     </p>

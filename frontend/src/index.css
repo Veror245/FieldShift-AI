@@ -234,6 +234,10 @@
   animation: fieldShiftDashReverse 1.8s linear infinite;
 }
 
+[data-thinking-orb] {
+  display: block;
+}
+
 @media print {
   @page {
     margin: 14mm;
@@ -261,5 +265,16 @@
     padding: 0;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

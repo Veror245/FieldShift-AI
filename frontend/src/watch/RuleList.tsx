@@ -1,3 +1,4 @@
+import { motion } from "framer-motion"
 import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -22,9 +23,12 @@ export default function RuleList({ rules, onToggle, onDelete }: Props) {
         </p>
       ) : (
         <ul className="space-y-3">
-          {rules.map((r) => (
-            <li
+          {rules.map((r, i) => (
+            <motion.li
               key={r.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05, duration: 0.3 }}
               className={`flex items-start gap-3 rounded-xl border border-forest/10 p-3 ${
                 r.enabled ? "bg-white" : "bg-forest/5"
               }`}
@@ -49,7 +53,7 @@ export default function RuleList({ rules, onToggle, onDelete }: Props) {
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
-            </li>
+            </motion.li>
           ))}
         </ul>
       )}

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
-import { motion, type Variants } from "framer-motion"
+import { motion } from "framer-motion"
 import { ArrowRightIcon, FlaskIcon, HistoryIcon } from "@/components/common/Icons"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -11,29 +11,9 @@ import { ErrorState } from "@/components/common/ErrorState"
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber"
 import ClimateAnomalyChart from "@/charts/ClimateAnomalyChart"
 import { getClimateFindings, USE_MOCK } from "@/services/api"
+import { pageContainer, pageItem } from "@/lib/motion"
 
 const clusterDot = ["bg-[#4E633D]", "bg-[#7E9167]", "bg-[#A66843]"]
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.055,
-      delayChildren: 0.04,
-    },
-  },
-}
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 12, filter: "blur(3px)" },
-  visible: {
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const },
-  },
-}
 
 export default function ClimateFindings() {
   const { data, isLoading, isError, refetch } = useQuery({
@@ -43,12 +23,12 @@ export default function ClimateFindings() {
 
   return (
     <motion.div
-      variants={containerVariants}
+      variants={pageContainer}
       initial="hidden"
       animate="visible"
       className="space-y-4"
     >
-      <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-between gap-3">
+      <motion.div variants={pageItem} className="flex flex-wrap items-center justify-between gap-3">
         <PageHeader
           title="Climate Findings"
           description={
@@ -88,8 +68,8 @@ export default function ClimateFindings() {
         const unusual = seasons.filter((s) => s.isAnomaly).length
 
         return (
-          <motion.div variants={containerVariants} className="space-y-4">
-            <motion.div variants={itemVariants} className="grid gap-3 sm:grid-cols-3">
+          <motion.div variants={pageContainer} className="space-y-4">
+            <motion.div variants={pageItem} className="grid gap-3 sm:grid-cols-3">
               <Card className="rounded-2xl p-4">
                 <p className="text-xs text-[#5C5A52]">Average seasonal rainfall</p>
                 <div className="mt-1 flex items-baseline gap-1.5">
@@ -121,7 +101,7 @@ export default function ClimateFindings() {
               </Card>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
+            <motion.div variants={pageItem} className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
               <div className="space-y-4">
                 <Card className="rounded-2xl p-4">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">

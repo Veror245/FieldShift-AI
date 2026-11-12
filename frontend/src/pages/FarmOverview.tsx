@@ -10,6 +10,7 @@ import { Term } from "@/components/common/Term"
 import FieldShape from "@/components/farm/FieldShape"
 import { getClimateFindings, getStrategies, getWatchAlerts, USE_MOCK } from "@/services/api"
 import { useFarmStore } from "@/store/useFarmStore"
+import { pageContainer, pageItem } from "@/lib/motion"
 import type { FarmProfile } from "@/types/farm"
 
 const waterLabel: Record<FarmProfile["water"], string> = {
@@ -41,20 +42,26 @@ export default function FarmOverview() {
   const unusual = climate.data ? climate.data.seasons.filter((s) => s.isAnomaly).length : null
 
   return (
-    <>
-      <PageHeader
-        title="Farm Overview"
-        description={
-          <>
-            Explore resilient crop rotations using satellite data such as <Term k="ndvi" /> and{" "}
-            <Term k="soilMoisture" />.
-          </>
-        }
-      />
+    <motion.div
+      variants={pageContainer}
+      initial="hidden"
+      animate="visible"
+      className="space-y-4"
+    >
+      <motion.div variants={pageItem}>
+        <PageHeader
+          title="Farm Overview"
+          description={
+            <>
+              Explore resilient crop rotations using satellite data such as <Term k="ndvi" /> and{" "}
+              <Term k="soilMoisture" />.
+            </>
+          }
+        />
+      </motion.div>
 
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
+        variants={pageItem}
         className="mb-6 flex flex-col gap-4 rounded-2xl bg-forest p-6 text-ivory sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
@@ -71,7 +78,7 @@ export default function FarmOverview() {
         </Button>
       </motion.div>
 
-      <ol className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <motion.ol variants={pageItem} className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {steps.map((s, i) => (
           <li key={s.label}>
             <Link
@@ -89,9 +96,9 @@ export default function FarmOverview() {
             </Link>
           </li>
         ))}
-      </ol>
+      </motion.ol>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <motion.div variants={pageItem} className="grid gap-6 lg:grid-cols-2">
         <Card className="rounded-2xl p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold">Your farm</h2>
@@ -205,7 +212,7 @@ export default function FarmOverview() {
             </Link>
           </Button>
         </Card>
-      </div>
-    </>
+      </motion.div>
+    </motion.div>
   )
 }

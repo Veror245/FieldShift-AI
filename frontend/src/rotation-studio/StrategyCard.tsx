@@ -3,6 +3,7 @@ import { motion } from "framer-motion"
 import { ArrowRight, BadgeCheck, Check, Info, Lightbulb, Minus, ShieldAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber"
 import RotationRadar from "@/charts/RotationRadar"
 import type { Scores, Strategy } from "@/types/api"
 
@@ -91,13 +92,17 @@ export default function StrategyCard({
             <span className="flex items-center gap-1.5 text-xs text-forest/60">
               Rank {rank} of {total}
               {rankChange !== undefined && rankChange !== 0 && (
-                <span
+                <motion.span
+                  key={rankChange}
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 420, damping: 22 }}
                   className={`rounded-full px-1.5 py-0.5 font-semibold ${
                     rankChange > 0 ? "bg-sage/30 text-forest" : "bg-sun/15 text-sun"
                   }`}
                 >
                   {rankChange > 0 ? `↑${rankChange}` : `↓${Math.abs(rankChange)}`}
-                </span>
+                </motion.span>
               )}
             </span>
           </div>
@@ -107,7 +112,9 @@ export default function StrategyCard({
         <div>
           <div className="mb-1 flex justify-between text-sm">
             <span className="text-forest/70">Overall fit</span>
-            <span className="font-bold">{s.overallScore}/100</span>
+            <span className="font-bold">
+              <AnimatedNumber value={s.overallScore} decimals={0} />/100
+            </span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-forest/10">
             <motion.div
