@@ -58,13 +58,18 @@ if __name__ == "__main__":
     app = graph.compile()
     
     async def main():
-        result = await app.ainvoke({
-            "objectives": "reduce water, improve soil",
-            "investigation_id": "test-001",
-            "centroid_lat": 31.52,
-            "centroid_lon": 74.35,
-        })
-        print(result)
+        async for event in app.astream(
+            {
+                "objectives": "reduce water, improve soil",
+                "investigation_id": "test-001",
+                "centroid_lat": 31.52,
+                "centroid_lon": 74.35,
+            },
+            stream_mode="updates",  # each node's delta
+        ):
+            for node_name, delta in event.items():
+                print(f"\n=== {node_name} ===")
+                print(delta)
     
     asyncio.run(main())
    
