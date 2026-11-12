@@ -27,6 +27,8 @@ class InvestigationState(TypedDict, total=False):
     #fields
     field_id: str
     geometry: dict  # geojson
+    centroid_lat: float
+    centroid_lon: float
 
     #orchestratin agents
     next_action: list[str]           
