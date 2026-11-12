@@ -7,5 +7,6 @@ _crops_cache = None
 def load_crops() -> dict:
     global _crops_cache
     if _crops_cache is None:
-        _crops_cache = json.loads(_CROPS_PATH.read_text())
+        raw = json.loads(_CROPS_PATH.read_text())
+        _crops_cache = raw["crops"]   # ← unwrap the _meta wrapper
     return _crops_cache

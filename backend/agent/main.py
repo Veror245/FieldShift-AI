@@ -1,7 +1,10 @@
+import uuid
+
 from langgraph.graph import START, END, StateGraph
 from ..agent.supervisor.state import InvestigationState, AgentName
 from ..agent.supervisor.graph import supervisor_node, AGENT_NODES, route_from_supervisor
 from ..agent.earth_obser.graph import earth_obs_node
+from ..agent.soil.graph import soil_node
 
 import asyncio
 
@@ -17,7 +20,7 @@ graph = StateGraph(InvestigationState)
 
 graph.add_node("supervisor", supervisor_node)
 graph.add_node("earth_obs", earth_obs_node)
-graph.add_node("soil", stub_soil)
+graph.add_node("soil", soil_node)
 graph.add_node("climate", stub_climate)
 graph.add_node("rotation", stub_rotation)
 graph.add_node("advisor", stub_advisor)
@@ -56,15 +59,49 @@ if __name__ == "__main__":
     app = graph.compile()
     
     async def main():
-        async for event in app.astream(
-            {
-                "objectives": "reduce water, improve soil",
-                "investigation_id": "test-001",
-                "lat": 31.52,
-                "lon": 74.35,
+        request = {
+            "investigation_id": f"test-{uuid.uuid4().hex[:8]}",
+            "farm_id": "farm-001",
+
+            "lat": 22.57,
+            "lon": 88.36,
+            "region": "kolkata",
+
+            "current_rotation": [
+                {"crop_id": "rice",  "season": "kharif", "year": 2023},
+                {"crop_id": "wheat", "season": "rabi",   "year": 2023},
+            ],
+
+            "soil_inputs": {
+                "ph": 7.8,
+                "organic_carbon_pct": 0.45,
+                "texture": "loam",
+                "nitrogen_ppm": 180,
+                "sampled_at": "2024-03-15",
+                "lab_name": "Punjab Soil Lab",
             },
-            stream_mode="updates",  # each node's delta
-        ):
+
+            "objectives": "Water availability has become unreliable. I want to improve soil health without taking excessive economic risks.",
+
+            "priorities": {
+                "water_efficiency": 0.9,
+                "soil_improvement": 0.8,
+                "economic_potential": 0.5,
+                "climate_compatibility": 0.7,
+                "nitrogen_cycling": 0.6,
+                "erosion_protection": 0.3,
+                "crop_diversity": 0.4,
+                "feasibility": 0.5,
+            },
+
+            "constraints": {
+                "forbidden_crops": [],
+                "required_crops": [],
+                "max_water_requirement": "medium",
+            },
+        }
+
+        async for event in app.astream(request, stream_mode="updates"): # type: ignore
             for node_name, delta in event.items():
                 print(f"\n=== {node_name} ===")
                 print(delta)

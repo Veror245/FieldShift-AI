@@ -12,7 +12,7 @@ from ..supervisor.state import Task
 
 
 
-DATA_DIR = Path("data/earth_obs")
+DATA_DIR = Path("backend/data/earth_obs")
 COLUMN_MAP = {
     "T2M": "t2m_c",
     "T2M_MAX": "t2m_max_c",
