@@ -9,7 +9,8 @@ import RotationStudio from "@/pages/RotationStudio"
 import ScenarioLab from "@/pages/ScenarioLab"
 import SeasonalCalendar from "@/pages/SeasonalCalendar"
 import FieldWatch from "@/pages/FieldWatch"
-import PlaceholderPage from "@/pages/PlaceholderPage"
+
+import ReportsPage from "@/pages/Reports"
 
 export default function App() {
   return (
@@ -25,10 +26,7 @@ export default function App() {
           <Route path="scenarios" element={<ScenarioLab />} />
           <Route path="calendar" element={<SeasonalCalendar />} />
           <Route path="watch" element={<FieldWatch />} />
-          <Route
-            path="reports"
-            element={<PlaceholderPage title="Reports" description="Export evidence-backed assessments." />}
-          />
+                    <Route path="reports" element={<ReportsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -233,3 +233,33 @@
 .animate-field-dash-reverse {
   animation: fieldShiftDashReverse 1.8s linear infinite;
 }
+
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  #report-root,
+  #report-root * {
+    visibility: visible;
+  }
+  #report-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

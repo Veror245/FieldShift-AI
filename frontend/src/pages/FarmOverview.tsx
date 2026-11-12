@@ -1,75 +1,211 @@
+import { Link } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { motion, type Variants } from "framer-motion"
-import { getStrategies } from "@/services/api"
+import { motion } from "framer-motion"
+import { ArrowRight, BellRing, Check, FileText, Map as MapIcon } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader } from "@/components/common/PageHeader"
 import { Term } from "@/components/common/Term"
+import FieldShape from "@/components/farm/FieldShape"
+import { getClimateFindings, getStrategies, getWatchAlerts, USE_MOCK } from "@/services/api"
+import { useFarmStore } from "@/store/useFarmStore"
+import type { FarmProfile } from "@/types/farm"
 
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.055,
-      delayChildren: 0.04,
-    },
-  },
-}
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 12, filter: "blur(3px)" },
-  visible: {
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const },
-  },
+const waterLabel: Record<FarmProfile["water"], string> = {
+  reliable: "Reliable irrigation",
+  unreliable: "Unreliable irrigation",
+  rainfed: "Rain-fed only",
 }
 
 export default function FarmOverview() {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["strategies"],
-    queryFn: getStrategies,
-  })
+  const { polygon, hectares, profile, selectedStrategyId, resetFarm } = useFarmStore()
+  const climate = useQuery({ queryKey: ["climate"], queryFn: getClimateFindings })
+  const alerts = useQuery({ queryKey: ["watch-alerts"], queryFn: getWatchAlerts })
+  const strategies = useQuery({ queryKey: ["strategies"], queryFn: getStrategies })
+
+  const selected = strategies.data?.find((s) => s.id === selectedStrategyId)
+  const newAlerts = alerts.data?.filter((a) => a.status === "new") ?? []
+
+  const steps = [
+    { label: "Draw your field", to: "/field", done: !!polygon },
+    { label: "Add farm details", to: "/field", done: !!profile },
+    { label: "Run the investigation", to: "/investigation", done: false },
+    { label: "Compare rotations", to: "/strategies", done: !!selected },
+    { label: "Get your report", to: "/reports", done: false },
+  ]
+
+  const avgRain = climate.data
+    ? Math.round(climate.data.seasons.reduce((a, s) => a + s.rainfallMm, 0) / climate.data.seasons.length)
+    : null
+  const unusual = climate.data ? climate.data.seasons.filter((s) => s.isAnomaly).length : null
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-4"
-    >
-      <motion.div variants={itemVariants}>
-        <PageHeader
-          title="Farm Overview"
-          description={
-            <>
-              Satellite data such as <Term k="ndvi" /> and{" "}
-              <Term k="soilMoisture" /> helps explore better crop rotations.
-            </>
-          }
-        />
+    <>
+      <PageHeader
+        title="Farm Overview"
+        description={
+          <>
+            Explore resilient crop rotations using satellite data such as <Term k="ndvi" /> and{" "}
+            <Term k="soilMoisture" />.
+          </>
+        }
+      />
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6 flex flex-col gap-4 rounded-2xl bg-forest p-6 text-ivory sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div>
+          <h2 className="text-xl font-bold">Understand your land. Explore your options.</h2>
+          <p className="mt-1 text-sm text-ivory/70">
+            Outline a field, share your priorities, and compare crop rotations side by side.
+          </p>
+        </div>
+        <Button asChild variant="secondary" className="h-12 shrink-0 rounded-xl px-6 text-base">
+          <Link to="/field">
+            <MapIcon className="mr-2 h-5 w-5" />
+            Investigate a field
+          </Link>
+        </Button>
       </motion.div>
 
-      {isLoading && (
-        <Skeleton className="h-32 w-full rounded-2xl bg-[#E5DFD0] border border-[#D4CCB9]" />
-      )}
-      {isError && <p className="text-[#A66843]">Something went wrong.</p>}
-
-      <motion.div variants={itemVariants} className="grid gap-4 sm:grid-cols-2">
-        {data?.map((s) => (
-          <Card
-            key={s.id}
-            className="rounded-2xl p-5"
-          >
-            <h2 className="font-semibold text-base text-[#1E241B]">{s.name}</h2>
-            <p className="mt-1 text-sm text-[#5C5A52]">
-              {s.sequence.map((c) => c.crop).join(" → ")}
-            </p>
-          </Card>
+      <ol className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {steps.map((s, i) => (
+          <li key={s.label}>
+            <Link
+              to={s.to}
+              className="flex h-full items-center gap-3 rounded-xl border border-forest/10 bg-white p-3 text-sm transition-shadow hover:shadow-md"
+            >
+              <span
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                  s.done ? "bg-forest text-ivory" : "bg-forest/10 text-forest/60"
+                }`}
+              >
+                {s.done ? <Check className="h-4 w-4" /> : i + 1}
+              </span>
+              {s.label}
+            </Link>
+          </li>
         ))}
-      </motion.div>
-    </motion.div>
+      </ol>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="rounded-2xl p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-semibold">Your farm</h2>
+            {profile && (
+              <Button variant="ghost" size="sm" onClick={resetFarm} className="h-9 rounded-lg text-xs">
+                Clear saved farm
+              </Button>
+            )}
+          </div>
+
+          {profile && polygon ? (
+            <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
+              <FieldShape polygon={polygon} className="w-full" />
+              <div className="space-y-2 text-sm">
+                <p className="text-lg font-bold">{profile.farmName}</p>
+                <p className="text-forest/70">{hectares.toFixed(2)} ha · {waterLabel[profile.water]}</p>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {profile.rotation.map((c, i) => (
+                    <span key={`${c}-${i}`} className="rounded-full bg-forest px-2.5 py-1 text-xs text-ivory">
+                      {i + 1}. {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-sage p-6 text-center text-sm text-forest/70">
+              <p className="mb-3">No field yet. Start by drawing your field on the map.</p>
+              <Button asChild className="rounded-xl">
+                <Link to="/field">Draw a field</Link>
+              </Button>
+            </div>
+          )}
+        </Card>
+
+        <Card className="rounded-2xl p-5">
+          <h2 className="mb-3 font-semibold">Climate at a glance</h2>
+          {USE_MOCK && <p className="mb-3 text-xs text-sun">Demo data, not real observations.</p>}
+          {climate.isLoading && <Skeleton className="h-24 rounded-xl" />}
+          {climate.data && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-ivory p-4">
+                <p className="text-xs text-forest/60">Average seasonal rainfall</p>
+                <p className="text-2xl font-bold">{avgRain} mm</p>
+              </div>
+              <div className="rounded-xl bg-ivory p-4">
+                <p className="text-xs text-forest/60">Unusual seasons</p>
+                <p className="text-2xl font-bold">
+                  {unusual} <span className="text-sm font-medium text-forest/60">of {climate.data.seasons.length}</span>
+                </p>
+              </div>
+            </div>
+          )}
+          <Button asChild variant="ghost" className="mt-3 h-10 rounded-lg px-2">
+            <Link to="/findings">
+              See climate findings <ArrowRight className="ml-1.5 h-4 w-4" />
+            </Link>
+          </Button>
+        </Card>
+
+        <Card className="rounded-2xl p-5">
+          <h2 className="mb-3 font-semibold">Selected for review</h2>
+          {selected ? (
+            <>
+              <p className="text-lg font-bold">{selected.name}</p>
+              <p className="mt-1 text-sm text-forest/70">{selected.sequence.map((c) => c.crop).join(" → ")}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button asChild variant="secondary" className="h-10 rounded-xl">
+                  <Link to="/strategies">Compare again</Link>
+                </Button>
+                <Button asChild className="h-10 rounded-xl">
+                  <Link to="/reports">
+                    <FileText className="mr-2 h-4 w-4" />
+                    Open report
+                  </Link>
+                </Button>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-forest/70">
+              Nothing selected yet. Compare the rotations in the Rotation Studio and select one to
+              review. Nothing changes on your farm until you decide.
+            </p>
+          )}
+        </Card>
+
+        <Card className="rounded-2xl p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <h2 className="font-semibold">Field Watch alerts</h2>
+            {newAlerts.length > 0 && (
+              <span className="rounded-full bg-sun px-2 py-0.5 text-xs font-semibold text-white">
+                {newAlerts.length} new
+              </span>
+            )}
+          </div>
+          {alerts.isLoading && <Skeleton className="h-24 rounded-xl" />}
+          {alerts.data && newAlerts.length === 0 && (
+            <p className="text-sm text-forest/70">No new alerts.</p>
+          )}
+          <ul className="space-y-2">
+            {newAlerts.slice(0, 2).map((a) => (
+              <li key={a.id} className="flex gap-2 rounded-xl bg-ivory p-3 text-sm">
+                <BellRing className="mt-0.5 h-4 w-4 shrink-0 text-sun" />
+                {a.title}
+              </li>
+            ))}
+          </ul>
+          <Button asChild variant="ghost" className="mt-3 h-10 rounded-lg px-2">
+            <Link to="/watch">
+              Open Field Watch <ArrowRight className="ml-1.5 h-4 w-4" />
+            </Link>
+          </Button>
+        </Card>
+      </div>
+    </>
   )
 }
