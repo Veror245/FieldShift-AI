@@ -1,13 +1,13 @@
 {
   "_meta": {
-    "version": "1.0",
+    "version": "1.1",
     "region": "punjab_in",
     "notes": [
       "Values are approximate agronomic ranges, not authoritative local measurements.",
+      "Economic values (yield, price) are rough Punjab-context estimates and REQUIRE local validation.",
+      "Market prices based on approximate MSP / mandi rates; do NOT treat as current.",
       "Months are 1-12. Windows are [start_month, end_month] inclusive.",
-      "Season conventions: kharif = Jun-Oct (monsoon), rabi = Oct-Mar (winter), zaid = Mar-Jun (summer).",
-      "Unknown/unverified properties should be added as null, not fabricated.",
-      "Ranges flagged in 'notes' field per crop require local agronomist validation."
+      "Unknown/unverified properties should be added as null, not fabricated."
     ]
   },
   "crops": {
@@ -18,6 +18,7 @@
       "planting_window": {"kharif": [6, 7]},
       "harvest_window": {"kharif": [10, 11]},
       "water_requirement": "high",
+      "water_use_mm": [1200, 1800],
       "temp_range_c": [22, 35],
       "ph_range": [5.5, 7.5],
       "rainfall_range_mm": [150, 300],
@@ -25,7 +26,14 @@
       "nitrogen_fixing": false,
       "residue_contribution": "medium",
       "ground_cover": "high",
-      "notes": ["Requires standing water during most of growing period", "Transplanting typically June-July"]
+      "nutrient_requirement": {"n_kg_ha": 125, "p_kg_ha": 26, "k_kg_ha": 33},
+      "pest_disease_notes": ["stem borer", "blast", "bacterial blight"],
+      "forage_potential": "low",
+      "market_suitability": "high",
+      "expected_yield_kg_per_ha": [6000, 8000],
+      "market_price_inr_per_kg": [20, 22],
+      "input_cost_level": "high",
+      "notes": ["Requires standing water during most of growing period", "MSP procurement available — market risk low"]
     },
     "wheat": {
       "name": "Wheat",
@@ -34,6 +42,7 @@
       "planting_window": {"rabi": [10, 11]},
       "harvest_window": {"rabi": [3, 4]},
       "water_requirement": "medium",
+      "water_use_mm": [450, 650],
       "temp_range_c": [12, 25],
       "ph_range": [6.0, 7.5],
       "rainfall_range_mm": [50, 150],
@@ -41,7 +50,14 @@
       "nitrogen_fixing": false,
       "residue_contribution": "medium",
       "ground_cover": "high",
-      "notes": ["Needs 4-6 irrigations in Punjab", "Delayed sowing past Nov reduces yield significantly"]
+      "nutrient_requirement": {"n_kg_ha": 120, "p_kg_ha": 26, "k_kg_ha": 33},
+      "pest_disease_notes": ["yellow rust", "powdery mildew", "aphids"],
+      "forage_potential": "low",
+      "market_suitability": "high",
+      "expected_yield_kg_per_ha": [4500, 5500],
+      "market_price_inr_per_kg": [22, 25],
+      "input_cost_level": "medium",
+      "notes": ["MSP procurement — market risk low", "Straw (bhusa) used as fodder locally"]
     },
     "maize": {
       "name": "Maize",
@@ -50,6 +66,7 @@
       "planting_window": {"kharif": [6, 7], "rabi": [1, 2]},
       "harvest_window": {"kharif": [9, 10], "rabi": [5, 6]},
       "water_requirement": "medium",
+      "water_use_mm": [500, 800],
       "temp_range_c": [18, 32],
       "ph_range": [5.5, 8.0],
       "rainfall_range_mm": [100, 200],
@@ -57,7 +74,14 @@
       "nitrogen_fixing": false,
       "residue_contribution": "high",
       "ground_cover": "high",
-      "notes": ["Grown in both kharif and rabi in Punjab", "High residue biomass — good for soil organic matter"]
+      "nutrient_requirement": {"n_kg_ha": 130, "p_kg_ha": 26, "k_kg_ha": 33},
+      "pest_disease_notes": ["fall armyworm", "stem borer"],
+      "forage_potential": "medium",
+      "market_suitability": "medium",
+      "expected_yield_kg_per_ha": [3000, 4500],
+      "market_price_inr_per_kg": [19, 22],
+      "input_cost_level": "medium",
+      "notes": ["Grown in both kharif and rabi", "High residue biomass — good for soil organic matter"]
     },
     "chickpea": {
       "name": "Chickpea (Gram)",
@@ -66,6 +90,7 @@
       "planting_window": {"rabi": [10, 11]},
       "harvest_window": {"rabi": [2, 3]},
       "water_requirement": "low",
+      "water_use_mm": [300, 400],
       "temp_range_c": [15, 28],
       "ph_range": [6.0, 9.0],
       "rainfall_range_mm": [40, 100],
@@ -73,7 +98,14 @@
       "nitrogen_fixing": true,
       "residue_contribution": "medium",
       "ground_cover": "medium",
-      "notes": ["Tolerates alkaline soils better than most legumes", "Mostly rainfed in Punjab — 1-2 supplemental irrigations"]
+      "nutrient_requirement": {"n_kg_ha": 20, "p_kg_ha": 22, "k_kg_ha": 17},
+      "pest_disease_notes": ["pod borer (Helicoverpa)", "wilt"],
+      "forage_potential": "low",
+      "market_suitability": "medium",
+      "expected_yield_kg_per_ha": [800, 1200],
+      "market_price_inr_per_kg": [52, 60],
+      "input_cost_level": "low",
+      "notes": ["Tolerates alkaline soils", "Mostly rainfed — 1-2 supplemental irrigations"]
     },
     "mung_bean": {
       "name": "Mung Bean (Green Gram)",
@@ -82,6 +114,7 @@
       "planting_window": {"kharif": [6, 7], "zaid": [3, 4]},
       "harvest_window": {"kharif": [9, 9], "zaid": [6, 6]},
       "water_requirement": "low",
+      "water_use_mm": [250, 350],
       "temp_range_c": [25, 35],
       "ph_range": [6.0, 8.0],
       "rainfall_range_mm": [40, 100],
@@ -89,6 +122,13 @@
       "nitrogen_fixing": true,
       "residue_contribution": "low",
       "ground_cover": "medium",
+      "nutrient_requirement": {"n_kg_ha": 20, "p_kg_ha": 17, "k_kg_ha": 13},
+      "pest_disease_notes": ["yellow mosaic virus", "thrips"],
+      "forage_potential": "low",
+      "market_suitability": "medium",
+      "expected_yield_kg_per_ha": [500, 800],
+      "market_price_inr_per_kg": [70, 85],
+      "input_cost_level": "low",
       "notes": ["Short duration — fits between major crops", "Good catch crop for summer window"]
     },
     "mustard": {
@@ -98,6 +138,7 @@
       "planting_window": {"rabi": [10, 10]},
       "harvest_window": {"rabi": [2, 3]},
       "water_requirement": "low",
+      "water_use_mm": [300, 400],
       "temp_range_c": [10, 25],
       "ph_range": [6.0, 8.0],
       "rainfall_range_mm": [30, 80],
@@ -105,6 +146,13 @@
       "nitrogen_fixing": false,
       "residue_contribution": "low",
       "ground_cover": "medium",
+      "nutrient_requirement": {"n_kg_ha": 60, "p_kg_ha": 13, "k_kg_ha": 17},
+      "pest_disease_notes": ["aphids", "white rust"],
+      "forage_potential": "none",
+      "market_suitability": "high",
+      "expected_yield_kg_per_ha": [1500, 2000],
+      "market_price_inr_per_kg": [50, 60],
+      "input_cost_level": "low",
       "notes": ["Drought-tolerant rabi crop", "Breaks poaceae-fabaceae cycle — adds family diversity"]
     },
     "berseem": {
@@ -114,6 +162,7 @@
       "planting_window": {"rabi": [10, 11]},
       "harvest_window": {"rabi": [3, 4]},
       "water_requirement": "medium",
+      "water_use_mm": [600, 900],
       "temp_range_c": [10, 25],
       "ph_range": [7.0, 8.5],
       "rainfall_range_mm": [50, 100],
@@ -121,7 +170,14 @@
       "nitrogen_fixing": true,
       "residue_contribution": "high",
       "ground_cover": "high",
-      "notes": ["Multi-cut forage crop (4-6 cuts Nov-Apr)", "Excellent N-fixer and soil-cover crop", "Tolerates alkaline Punjab soils"]
+      "nutrient_requirement": {"n_kg_ha": 20, "p_kg_ha": 26, "k_kg_ha": 33},
+      "pest_disease_notes": ["root rot", "stem rot"],
+      "forage_potential": "high",
+      "market_suitability": "low",
+      "expected_yield_kg_per_ha": [50000, 70000],
+      "market_price_inr_per_kg": [2, 3],
+      "input_cost_level": "medium",
+      "notes": ["Multi-cut forage (4-6 cuts Nov-Apr)", "Excellent N-fixer; forage markets thin — mostly on-farm use", "Yield value is green fodder, not grain"]
     },
     "cowpea": {
       "name": "Cowpea",
@@ -130,6 +186,7 @@
       "planting_window": {"kharif": [6, 7]},
       "harvest_window": {"kharif": [9, 9]},
       "water_requirement": "low",
+      "water_use_mm": [250, 350],
       "temp_range_c": [22, 35],
       "ph_range": [5.5, 8.0],
       "rainfall_range_mm": [40, 100],
@@ -137,6 +194,13 @@
       "nitrogen_fixing": true,
       "residue_contribution": "low",
       "ground_cover": "medium",
+      "nutrient_requirement": {"n_kg_ha": 20, "p_kg_ha": 17, "k_kg_ha": 13},
+      "pest_disease_notes": ["aphids", "mosaic virus"],
+      "forage_potential": "high",
+      "market_suitability": "low",
+      "expected_yield_kg_per_ha": [600, 900],
+      "market_price_inr_per_kg": [60, 70],
+      "input_cost_level": "low",
       "notes": ["Drought-tolerant legume", "Dual purpose: grain and fodder"]
     }
   }
