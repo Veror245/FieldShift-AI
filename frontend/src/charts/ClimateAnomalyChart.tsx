@@ -114,6 +114,7 @@ export default function ClimateAnomalyChart({ seasons }: { seasons: ClimateSeaso
             dataKey="rainfallMm"
             radius={[6, 6, 0, 0]}
             maxBarSize={32}
+            animationBegin={150}
             animationDuration={850}
             animationEasing="ease-out"
           >
@@ -141,6 +142,7 @@ export default function ClimateAnomalyChart({ seasons }: { seasons: ClimateSeaso
             strokeWidth={2.5}
             dot={{ r: 3.5, fill: "#4E633D", stroke: "#E6E0D2", strokeWidth: 2 }}
             activeDot={{ r: 6.5, fill: "#A66843", stroke: "#FFFFFF", strokeWidth: 2.5 }}
+            animationBegin={250}
             animationDuration={1100}
             animationEasing="ease-out"
           />

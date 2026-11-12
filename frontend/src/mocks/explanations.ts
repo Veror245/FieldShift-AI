@@ -1,6 +1,4 @@
 import type { EvidenceRecord, StrategyExplanation } from "@/types/api"
-
-// DEMO DATA ONLY. Placeholder text and records, not real analysis results.
 const evidence: EvidenceRecord[] = [
   {
     id: "E1",
@@ -72,14 +70,12 @@ const evidence: EvidenceRecord[] = [
     note: "Wording only. Facts come from the records above.",
   },
 ]
-
 const limitations = [
   "Climate data comes from a coarse grid and describes the wider area, not your exact field.",
   "Soil values are limited to what you entered. Gridded soil maps are less precise than a lab test.",
   "Crop information is regional and incomplete. Items marked unknown are not guessed.",
   "Scores compare these options with each other. They do not predict yield or income.",
 ]
-
 export const mockExplanations: Record<string, StrategyExplanation> = {
   a: {
     strategyId: "a",

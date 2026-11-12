@@ -1,7 +1,7 @@
 import type * as maplibregl from "maplibre-gl"
 
-const CACHE_NAME = "fieldshift-map-tiles-v2"
-const MAX_LRU_ENTRIES = 400
+const CACHE_NAME = "fieldshift-map-tiles-v3"
+const MAX_LRU_ENTRIES = 500
 
 class TileLruCache {
   private cache = new Map<string, ArrayBuffer>()
@@ -125,6 +125,8 @@ export function prewarmWestBengalTiles(): void {
     try {
       const cache = await caches.open(CACHE_NAME)
       const zooms = [12, 13, 14, 15]
+      const subdomains = ["mt0", "mt1", "mt2", "mt3"]
+      let subIdx = 0
 
       for (const pt of WEST_BENGAL_KEY_POINTS) {
         for (const z of zooms) {
@@ -133,7 +135,9 @@ export function prewarmWestBengalTiles(): void {
             for (let dy = -1; dy <= 1; dy++) {
               const tileX = x + dx
               const tileY = y + dy
-              const url = `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${tileY}/${tileX}?blankTile=false`
+              const sub = subdomains[subIdx % subdomains.length]
+              subIdx++
+              const url = `https://${sub}.google.com/vt/lyrs=s&hl=en&x=${tileX}&y=${tileY}&z=${z}&scale=2`
 
               const exists = await cache.match(url)
               if (!exists) {
@@ -144,7 +148,7 @@ export function prewarmWestBengalTiles(): void {
                     }
                   })
                   .catch(() => {})
-                await new Promise((r) => setTimeout(r, 40))
+                await new Promise((r) => setTimeout(r, 35))
               }
             }
           }

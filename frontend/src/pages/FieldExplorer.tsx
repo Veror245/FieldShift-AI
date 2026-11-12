@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { motion, type Variants } from "framer-motion"
+import { motion } from "framer-motion"
 import FieldMap from "@/maps/FieldMap"
 import FarmForm from "@/components/farm/FarmForm"
 import { Card } from "@/components/ui/card"
@@ -10,31 +10,11 @@ import { PlusIcon } from "@/components/common/Icons"
 import { uiSoundEngine } from "@/utils/uiSoundEngine"
 import { useFarmStore } from "@/store/useFarmStore"
 import type { FarmProfile } from "@/types/farm"
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.055,
-      delayChildren: 0.04,
-    },
-  },
-}
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 12, filter: "blur(3px)" },
-  visible: {
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const },
-  },
-}
+import { pageContainer, pageItem } from "@/lib/motion"
 
 export default function FieldExplorer() {
   const navigate = useNavigate()
-  const { polygon, hectares, setField, setProfile } = useFarmStore()
+  const { polygon, hectares, locationAddress, setField, setProfile } = useFarmStore()
 
   const corners = polygon ? polygon.geometry.coordinates[0].length - 1 : 0
 
@@ -50,33 +30,40 @@ export default function FieldExplorer() {
 
   return (
     <motion.div
-      variants={containerVariants}
+      variants={pageContainer}
       initial="hidden"
       animate="visible"
       className="space-y-3"
     >
-      <motion.div variants={itemVariants} className="flex items-center justify-between">
+      <motion.div variants={pageItem} className="flex items-center justify-between">
         <PageHeader
           title="Field Explorer"
           description="Find your land, outline your field boundary, then tell us about your farm."
         />
         {polygon && (
-          <div className="hidden sm:flex items-center gap-2.5 rounded-full px-3.5 py-1.5 bg-[#DAD3C2] border border-[#C2B9A5] text-xs font-semibold text-[#2B3326] shadow-sm">
-            <span className="h-2 w-2 rounded-full bg-[#5E7A46] animate-pulse" />
-            <span>
-              Boundary active • <AnimatedNumber value={hectares} decimals={2} suffix=" ha" /> ({corners} corners)
-            </span>
+          <div className="hidden sm:flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2.5 rounded-full px-3.5 py-1.5 bg-[#DAD3C2] border border-[#C2B9A5] text-xs font-semibold text-[#2B3326] shadow-sm">
+              <span className="h-2 w-2 rounded-full bg-[#5E7A46] animate-pulse" />
+              <span>
+                Boundary active • <AnimatedNumber value={hectares} decimals={2} suffix=" ha" /> ({corners} corners)
+              </span>
+            </div>
+            {locationAddress && (
+              <span className="text-[11px] font-medium text-[#5E594F] truncate max-w-[340px]">
+                📍 {locationAddress}
+              </span>
+            )}
           </div>
         )}
       </motion.div>
 
       <div className="grid gap-3.5 lg:grid-cols-[1.35fr_380px] lg:h-[calc(100vh-140px)] items-stretch">
-        <motion.div variants={itemVariants} className="h-[480px] lg:h-full w-full rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(35,31,24,0.10)] border-2 border-[#CFC6B2] bg-[#E8E2D4]">
+        <motion.div variants={pageItem} className="h-[480px] lg:h-full w-full rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(35,31,24,0.10)] border-2 border-[#CFC6B2] bg-[#E8E2D4]">
           <FieldMap initialPolygon={polygon} onChange={setField} />
         </motion.div>
 
         <motion.div
-          variants={itemVariants}
+          variants={pageItem}
           className="space-y-3 lg:overflow-y-auto lg:pr-1.5 h-full max-h-[calc(100vh-140px)]"
         >
           <Card className="rounded-2xl p-4">
@@ -104,6 +91,14 @@ export default function FieldExplorer() {
                       <AnimatedNumber value={corners} decimals={0} suffix=" vertices" />
                     </dd>
                   </div>
+                  {locationAddress && (
+                    <div className="flex justify-between items-start gap-2 pt-1 border-t border-[#D9D1BF]">
+                      <dt className="text-[#666257] shrink-0">Field location</dt>
+                      <dd className="font-semibold text-right text-[#1E241B] text-[11px] leading-snug">
+                        {locationAddress}
+                      </dd>
+                    </div>
+                  )}
                   <p className="pt-0.5 text-[11px] text-[#787367] leading-tight">
                     Drag corner points on map to adjust. Area updates live in real-time.
                   </p>

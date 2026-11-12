@@ -7,6 +7,7 @@ import {
   playTabSwitchSfx,
   useSfxMute,
 } from "@/utils/uiSoundEngine"
+import { EASE_OUT_EXPO, pageExitTransition } from "@/lib/motion"
 import { navItems } from "./nav"
 
 export default function AppShell() {
@@ -23,7 +24,7 @@ export default function AppShell() {
     <TooltipProvider delayDuration={150}>
       <div className="min-h-screen bg-[#E6E0D2] text-[#1E241B]">
         <aside
-          className={`fixed inset-y-0 left-0 hidden flex-col overflow-hidden bg-[#1A2118] border-r border-[#2A3327] p-3.5 text-[#ECE8DF] md:flex z-40 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          className={`fixed inset-y-0 left-0 hidden flex-col overflow-y-auto overflow-x-hidden bg-[#1A2118] border-r border-[#2A3327] p-3.5 text-[#ECE8DF] md:flex z-40 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             collapsed ? "w-20" : "w-64"
           }`}
         >
@@ -72,7 +73,7 @@ export default function AppShell() {
             )}
           </div>
 
-          <nav className="flex flex-col gap-1 relative overflow-hidden">
+          <nav className="flex flex-col gap-1 relative">
             {navItems.map(({ to, label, icon: Icon }) => {
               const isActive = to === "/" ? location.pathname === "/" : location.pathname.startsWith(to)
               return (
@@ -82,15 +83,15 @@ export default function AppShell() {
                   end={to === "/"}
                   onClick={() => playTabSwitchSfx()}
                   title={collapsed ? label : undefined}
-                  className={`group relative flex items-center rounded-xl py-2.5 text-sm font-medium transition-colors hover:bg-white/5 ${
-                    collapsed ? "justify-center px-2" : "gap-3 px-3.5"
+                  className={`group relative flex items-center rounded-xl text-sm font-medium transition-colors hover:bg-white/5 ${
+                    collapsed ? "h-11 w-11 mx-auto justify-center" : "gap-3 px-3.5 py-2.5 w-full"
                   }`}
                 >
                   {isActive && (
                     <motion.div
-                      layoutId="fieldshift-active-sidebar-pill"
-                      transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.8 }}
-                      className="absolute inset-0 rounded-xl bg-gradient-to-br from-[#98B882] via-[#7E9867] to-[#688254] border border-white/25 border-t-white/45 shadow-[0_6px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-xl"
+                      layoutId={collapsed ? "sidebar-active-pill-collapsed" : "sidebar-active-pill-expanded"}
+                      transition={{ type: "spring", stiffness: 450, damping: 35, mass: 0.8 }}
+                      className="absolute inset-0 rounded-xl bg-gradient-to-br from-[#98B882] via-[#7E9867] to-[#688254] border border-white/25 border-t-white/45 shadow-[0_4px_16px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-xl pointer-events-none"
                     />
                   )}
                   <Icon
@@ -141,13 +142,10 @@ export default function AppShell() {
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={location.pathname}
-                initial={{ opacity: 0, y: 14, filter: "blur(6px)", scale: 0.992 }}
+                initial={{ opacity: 0, y: 16, filter: "blur(10px)", scale: 1.004 }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)", scale: 1 }}
-                exit={{ opacity: 0, y: -8, filter: "blur(4px)", scale: 0.995 }}
-                transition={{
-                  duration: 0.28,
-                  ease: [0.22, 1, 0.36, 1] as const,
-                }}
+                exit={{ opacity: 0, y: -10, filter: "blur(10px)", scale: 0.99, transition: pageExitTransition }}
+                transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
               >
                 <Outlet />
               </motion.div>

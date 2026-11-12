@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { motion } from "framer-motion"
 import { FlaskConical, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -20,6 +21,7 @@ import PriorityPanel from "@/rotation-studio/PriorityPanel"
 import { getStrategies, reviseStrategies, USE_MOCK } from "@/services/api"
 import { defaultWeights, weightsToScores, type Weights } from "@/lib/scoring"
 import { useFarmStore } from "@/store/useFarmStore"
+import { pageContainer, pageItem } from "@/lib/motion"
 import type { Strategy } from "@/types/api"
 import WhyDrawer from "@/rotation-studio/WhyDrawer"
 
@@ -68,87 +70,95 @@ export default function RotationStudio() {
 
   return (
     <>
-      <PageHeader
-        title="Rotation Studio"
-        description="Compare crop rotation options side by side. You stay in control of every decision."
-      />
-
-      {USE_MOCK && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-sun/40 bg-sun/10 p-4 text-sm">
-          <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-sun" />
-          <p>
-            <strong>Demo data.</strong> Scores and crops are placeholders. Revising uses a simple
-            weighted average of those placeholders to preview the interaction. These are not real
-            recommendations.
-          </p>
-        </div>
-      )}
-
-      {selected && (
-        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-forest/20 bg-white p-4 text-sm">
-          <ShieldCheck className="h-5 w-5 shrink-0 text-forest" />
-          <p>
-            Selected for review: <strong>{selected.name}</strong>. Nothing has changed on your farm.
-          </p>
-        </div>
-      )}
-
-      {isLoading && (
-        <div className="grid gap-6 md:grid-cols-2">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-[640px] rounded-2xl" />
-          ))}
-        </div>
-      )}
-
-      {isError && (
-        <Card className="rounded-2xl p-6 text-center">
-          <p className="mb-3 text-sm">Could not load strategies.</p>
-          <Button onClick={() => refetch()} className="rounded-xl">
-            Try again
-          </Button>
-        </Card>
-      )}
-
-      {list && (
-        <div className="space-y-8">
-          <PriorityPanel
-            weights={weights}
-            onChange={setWeights}
-            onRevise={() => revise.mutate(weights)}
-            revising={revise.isPending}
-            dirty={dirty}
+      <motion.div variants={pageContainer} initial="hidden" animate="visible">
+        <motion.div variants={pageItem}>
+          <PageHeader
+            title="Rotation Studio"
+            description="Compare crop rotation options side by side. You stay in control of every decision."
           />
+        </motion.div>
 
+        {USE_MOCK && (
+          <motion.div
+            variants={pageItem}
+            className="mb-6 flex items-start gap-3 rounded-2xl border border-sun/40 bg-sun/10 p-4 text-sm"
+          >
+            <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-sun" />
+            <p>
+              <strong>Demo data.</strong> Scores and crops are placeholders. Revising uses a simple
+              weighted average of those placeholders to preview the interaction. These are not real
+              recommendations.
+            </p>
+          </motion.div>
+        )}
+
+        {selected && (
+          <motion.div
+            variants={pageItem}
+            className="mb-6 flex items-center gap-3 rounded-2xl border border-forest/20 bg-white p-4 text-sm"
+          >
+            <ShieldCheck className="h-5 w-5 shrink-0 text-forest" />
+            <p>
+              Selected for review: <strong>{selected.name}</strong>. Nothing has changed on your farm.
+            </p>
+          </motion.div>
+        )}
+
+        {isLoading && (
           <div className="grid gap-6 md:grid-cols-2">
-            {list.map((s, i) => (
-              <StrategyCard
-                              
-                key={s.id}
-                strategy={s}
-                baseline={baseline}
-                rank={ranks[s.id]}
-                rankChange={prevRanks[s.id] ? prevRanks[s.id] - ranks[s.id] : 0}
-                total={list.length}
-                index={i}
-                selected={s.id === selectedStrategyId}
-                onSelect={setPending}
-                priorities={weightsToScores(weights)}
-                onExplain={setExplaining}
-                
-              />
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-[640px] rounded-2xl" />
             ))}
           </div>
+        )}
 
-          <ComparisonTable strategies={list} />
+        {isError && (
+          <Card className="rounded-2xl p-6 text-center">
+            <p className="mb-3 text-sm">Could not load strategies.</p>
+            <Button onClick={() => refetch()} className="rounded-xl">
+              Try again
+            </Button>
+          </Card>
+        )}
 
-          <p className="text-xs text-forest/50">
-            Scores compare these options against each other using the available evidence. They do
-            not predict yield or income. Items marked for expert validation should be checked with
-            a local agricultural expert.
-          </p>
-        </div>
-      )}
+        {list && (
+          <motion.div variants={pageItem} className="space-y-8">
+            <PriorityPanel
+              weights={weights}
+              onChange={setWeights}
+              onRevise={() => revise.mutate(weights)}
+              revising={revise.isPending}
+              dirty={dirty}
+            />
+
+            <div className="grid gap-6 md:grid-cols-2">
+              {list.map((s, i) => (
+                <StrategyCard
+                  key={s.id}
+                  strategy={s}
+                  baseline={baseline}
+                  rank={ranks[s.id]}
+                  rankChange={prevRanks[s.id] ? prevRanks[s.id] - ranks[s.id] : 0}
+                  total={list.length}
+                  index={i}
+                  selected={s.id === selectedStrategyId}
+                  onSelect={setPending}
+                  priorities={weightsToScores(weights)}
+                  onExplain={setExplaining}
+                />
+              ))}
+            </div>
+
+            <ComparisonTable strategies={list} />
+
+            <p className="text-xs text-forest/50">
+              Scores compare these options against each other using the available evidence. They do
+              not predict yield or income. Items marked for expert validation should be checked with
+              a local agricultural expert.
+            </p>
+          </motion.div>
+        )}
+      </motion.div>
 
       <Dialog open={pending !== null} onOpenChange={(open) => !open && setPending(null)}>
         <DialogContent className="rounded-2xl">
@@ -169,7 +179,6 @@ export default function RotationStudio() {
             </Button>
           </DialogFooter>
         </DialogContent>
-         
       </Dialog>
       <WhyDrawer strategy={explaining} onClose={() => setExplaining(null)} />
     </>

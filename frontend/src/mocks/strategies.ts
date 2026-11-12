@@ -1,6 +1,4 @@
 import type { Strategy } from "@/types/api"
-
-// DEMO DATA ONLY. Placeholder scores, not real evaluation results.
 export const mockStrategies: Strategy[] = [
   {
     id: "a",

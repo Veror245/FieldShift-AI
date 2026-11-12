@@ -1,19 +1,15 @@
 import { mockStrategies } from "@/mocks/strategies"
 import type { CalendarSegment, SeasonalCalendar } from "@/types/calendar"
-
 const seg = (
   type: CalendarSegment["type"],
   start: number,
   end: number,
   crop?: string
 ): CalendarSegment => ({ type, start, end, crop })
-
 const twoYears = (segments: CalendarSegment[]): CalendarSegment[] => [
   ...segments,
   ...segments.map((s) => ({ ...s, start: s.start + 12, end: s.end + 12 })),
 ]
-
-// DEMO DATA ONLY. Placeholder timings (month 0 = June), not verified regional planting windows.
 const pattern: Record<string, CalendarSegment[]> = {
   a: [
     seg("sowing", 0, 1, "Rice"),
@@ -52,7 +48,6 @@ const pattern: Record<string, CalendarSegment[]> = {
     seg("bare", 10, 12),
   ],
 }
-
 export const mockCalendar: SeasonalCalendar = {
   startMonth: 5,
   startYear: 2027,

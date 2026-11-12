@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { motion } from "framer-motion"
 import { FlaskConical, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -17,6 +18,7 @@ import {
   updateWatchRule,
   USE_MOCK,
 } from "@/services/api"
+import { pageContainer, pageItem } from "@/lib/motion"
 
 export default function FieldWatch() {
   const qc = useQueryClient()
@@ -58,32 +60,40 @@ export default function FieldWatch() {
   const newCount = alerts.data?.filter((a) => a.status === "new").length ?? 0
 
   return (
-    <>
-      <PageHeader
-        title="Field Watch"
-        description="Tell us what to keep an eye on. You decide what to do with every alert."
-      />
+    <motion.div variants={pageContainer} initial="hidden" animate="visible">
+      <motion.div variants={pageItem}>
+        <PageHeader
+          title="Field Watch"
+          description="Tell us what to keep an eye on. You decide what to do with every alert."
+        />
+      </motion.div>
 
-      <div className="mb-6 flex items-start gap-3 rounded-2xl bg-forest p-4 text-sm text-ivory">
+      <motion.div
+        variants={pageItem}
+        className="mb-6 flex items-start gap-3 rounded-2xl bg-forest p-4 text-sm text-ivory"
+      >
         <Info className="mt-0.5 h-5 w-5 shrink-0 text-sage" />
         <p>
           <strong>Not real-time surveillance.</strong> Satellite and climate datasets are published
           with delays and describe wide areas. Alerts are written after the evidence is compared
           with the historical baseline.
         </p>
-      </div>
+      </motion.div>
 
       {USE_MOCK && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-sun/40 bg-sun/10 p-4 text-sm">
+        <motion.div
+          variants={pageItem}
+          className="mb-6 flex items-start gap-3 rounded-2xl border border-sun/40 bg-sun/10 p-4 text-sm"
+        >
           <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-sun" />
           <p>
             <strong>Demo data.</strong> Rules and alerts are placeholders stored in memory. They
             are not real observations and reset when you refresh the page.
           </p>
-        </div>
+        </motion.div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <motion.div variants={pageItem} className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
           <RuleBuilder onCreate={(r) => create.mutate(r)} creating={create.isPending} />
 
@@ -131,7 +141,7 @@ export default function FieldWatch() {
           )}
           {alerts.data && <AlertList alerts={alerts.data} onReview={(id) => review.mutate(id)} />}
         </div>
-      </div>
-    </>
+      </motion.div>
+    </motion.div>
   )
 }
