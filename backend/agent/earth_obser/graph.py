@@ -55,8 +55,8 @@ async def fetch_nasa_power(lat: float, lon: float, start: str, end: str) -> pd.D
 
 async def earth_obs_node(state: EarthObsState) -> dict:
     task_id = f"earth_obs:{uuid4()}"
-    lat = state["centroid_lat"] # type: ignore
-    lon = state["centroid_lon"] # type: ignore
+    lat = state["lat"] # type: ignore
+    lon = state["lon"] # type: ignore
     start, end = "20180101", "20231231"
 
    

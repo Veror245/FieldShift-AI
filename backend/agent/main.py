@@ -5,8 +5,6 @@ from ..agent.earth_obser.graph import earth_obs_node
 
 import asyncio
 
-
-def stub_earth_obs(state): return {"earth_obs": {"stub": True}}
 def stub_soil(state):      return {"agronomy":   {"stub": True}}
 def stub_climate(state):   return {"climate":    {"stub": True}}
 def stub_rotation(state):  return {"rotation":   {"strategies": []}}
@@ -62,8 +60,8 @@ if __name__ == "__main__":
             {
                 "objectives": "reduce water, improve soil",
                 "investigation_id": "test-001",
-                "centroid_lat": 31.52,
-                "centroid_lon": 74.35,
+                "lat": 31.52,
+                "lon": 74.35,
             },
             stream_mode="updates",  # each node's delta
         ):

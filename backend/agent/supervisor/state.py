@@ -17,21 +17,22 @@ def _merge_tasks(left: list[Task], right: list[Task]):
     by_id.update({t.task_id: t for t in right})
     return list(by_id.values())
 
-
 class InvestigationState(TypedDict, total=False):
     
     investigation_id: str
-    
-    #farmer stuff
-    objectives: str
-    priorities: dict[str, float]
-    constraints: list[str]
+    farm_id: str
 
     #fields
-    field_id: str
-    geometry: dict  # geojson
-    centroid_lat: float
-    centroid_lon: float
+    lat: float
+    lon: float
+    region: str
+    
+     # inputs
+    soil_inputs: dict
+    current_rotation: list[dict]
+    objectives: str
+    priorities: dict[str, float]
+    constraints: dict
 
     #orchestratin agents
     next_action: list[str]           
