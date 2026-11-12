@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { scoreMeta } from "@/lib/scoreLabels"
-import { defaultWeights, weightMeta } from "@/lib/scoring"
+import { weightMeta, type Weights } from "@/lib/scoring"
 import type { FarmProfile } from "@/types/farm"
 import type { ClimateFindings, EvidenceKind, Strategy, StrategyExplanation } from "@/types/api"
 
@@ -55,6 +55,7 @@ type Props = {
   selected: Strategy
   climate: ClimateFindings
   explanation: StrategyExplanation
+  weights: Weights
   isDemo: boolean
 }
 
@@ -66,6 +67,7 @@ export default function ReportDocument({
   selected,
   climate,
   explanation,
+  weights,
   isDemo,
 }: Props) {
   const ranked = [...strategies].sort((a, b) => b.overallScore - a.overallScore)
@@ -218,7 +220,7 @@ export default function ReportDocument({
         </p>
         <p className="text-sm">
           Priority weights used:{" "}
-          {weightMeta.map((m) => `${m.label} ${defaultWeights[m.key]}`).join(", ")}.
+          {weightMeta.map((m) => `${m.label} ${weights[m.key]}`).join(", ")}.
         </p>
       </Section>
 

@@ -2,17 +2,18 @@ import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import type { FieldPolygon } from "@/types/geojson"
 import type { FarmProfile } from "@/types/farm"
+import { defaultWeights, type Weights } from "@/lib/scoring"
 
 type FarmState = {
   polygon: FieldPolygon | null
   hectares: number
   profile: FarmProfile | null
   selectedStrategyId: string | null
-  locationAddress: string | null
-  setField: (polygon: FieldPolygon | null, hectares: number, locationAddress?: string | null) => void
+  weights: Weights
+  setField: (polygon: FieldPolygon | null, hectares: number) => void
   setProfile: (profile: FarmProfile) => void
-  setLocationAddress: (locationAddress: string | null) => void
   selectStrategy: (id: string | null) => void
+  setWeights: (weights: Weights) => void
   resetFarm: () => void
 }
 
@@ -23,18 +24,19 @@ export const useFarmStore = create<FarmState>()(
       hectares: 0,
       profile: null,
       selectedStrategyId: null,
-      locationAddress: null,
-      setField: (polygon, hectares, locationAddress) =>
-        set((state) => ({
-          polygon,
-          hectares,
-          locationAddress: locationAddress !== undefined ? locationAddress : state.locationAddress,
-        })),
+      weights: defaultWeights,
+      setField: (polygon, hectares) => set({ polygon, hectares }),
       setProfile: (profile) => set({ profile }),
-      setLocationAddress: (locationAddress) => set({ locationAddress }),
       selectStrategy: (id) => set({ selectedStrategyId: id }),
+      setWeights: (weights) => set({ weights }),
       resetFarm: () =>
-        set({ polygon: null, hectares: 0, profile: null, selectedStrategyId: null, locationAddress: null }),
+        set({
+          polygon: null,
+          hectares: 0,
+          profile: null,
+          selectedStrategyId: null,
+          weights: defaultWeights,
+        }),
     }),
     { name: "fieldshift-farm" }
   )

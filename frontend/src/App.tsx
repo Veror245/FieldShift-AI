@@ -1,7 +1,7 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom"
-import { MotionConfig } from "framer-motion"
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom"
 import { Toaster } from "sonner"
 import AppShell from "@/components/layout/AppShell"
+import ErrorBoundary from "@/components/common/ErrorBoundary"
 import FarmOverview from "@/pages/FarmOverview"
 import FieldExplorer from "@/pages/FieldExplorer"
 import MissionControl from "@/pages/MissionControl"
@@ -10,15 +10,14 @@ import RotationStudio from "@/pages/RotationStudio"
 import ScenarioLab from "@/pages/ScenarioLab"
 import SeasonalCalendar from "@/pages/SeasonalCalendar"
 import FieldWatch from "@/pages/FieldWatch"
-
 import ReportsPage from "@/pages/Reports"
+import NotFound from "@/pages/NotFound"
 
-export default function App() {
+function AppRoutes() {
+  const location = useLocation()
   return (
-    <MotionConfig reducedMotion="user">
-      <BrowserRouter>
-        <Toaster richColors position="top-center" />
-        <Routes>
+    <ErrorBoundary key={location.pathname}>
+      <Routes>
         <Route element={<AppShell />}>
           <Route index element={<FarmOverview />} />
           <Route path="field" element={<FieldExplorer />} />
@@ -28,10 +27,19 @@ export default function App() {
           <Route path="scenarios" element={<ScenarioLab />} />
           <Route path="calendar" element={<SeasonalCalendar />} />
           <Route path="watch" element={<FieldWatch />} />
-                    <Route path="reports" element={<ReportsPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
-        </Routes>
-      </BrowserRouter>
-    </MotionConfig>
+      </Routes>
+    </ErrorBoundary>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Toaster richColors position="top-center" />
+      <AppRoutes />
+    </BrowserRouter>
   )
 }

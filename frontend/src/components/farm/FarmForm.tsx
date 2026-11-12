@@ -48,9 +48,9 @@ function Field({
   )
 }
 
-type Props = { onSubmit: (values: FarmProfile) => void }
+type Props = { onSubmit: (values: FarmProfile) => void; initial?: FarmProfile | null }
 
-export default function FarmForm({ onSubmit }: Props) {
+export default function FarmForm({ onSubmit, initial }: Props) {
   const {
     register,
     control,
@@ -58,7 +58,7 @@ export default function FarmForm({ onSubmit }: Props) {
     formState: { errors },
   } = useForm<FarmProfile>({
     resolver: zodResolver(farmSchema),
-    defaultValues: {
+     defaultValues: initial ?? {
       farmName: "",
       rotation: [],
       soilPh: "",

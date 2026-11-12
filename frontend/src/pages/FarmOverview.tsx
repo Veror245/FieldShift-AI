@@ -20,10 +20,14 @@ const waterLabel: Record<FarmProfile["water"], string> = {
 }
 
 export default function FarmOverview() {
-  const { polygon, hectares, profile, selectedStrategyId, resetFarm } = useFarmStore()
+  const { polygon, hectares, profile, selectedStrategyId, weights, resetFarm } = useFarmStore()
   const climate = useQuery({ queryKey: ["climate"], queryFn: getClimateFindings })
   const alerts = useQuery({ queryKey: ["watch-alerts"], queryFn: getWatchAlerts })
-  const strategies = useQuery({ queryKey: ["strategies"], queryFn: getStrategies })
+    const strategies = useQuery({
+    queryKey: ["strategies", weights],
+    queryFn: () => getStrategies(weights),
+    staleTime: 60_000,
+  })
 
   const selected = strategies.data?.find((s) => s.id === selectedStrategyId)
   const newAlerts = alerts.data?.filter((a) => a.status === "new") ?? []

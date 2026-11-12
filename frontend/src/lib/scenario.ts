@@ -1,56 +1,65 @@
-import type { ScenarioInput, ScenarioResult, ScenarioStrategyResult } from "@/types/scenario"
 import { mockStrategies } from "@/mocks/strategies"
+import { defaultWeights, weightedScore, type Weights } from "@/lib/scoring"
+import type { Scores } from "@/types/api"
+import type { ScenarioInput, ScenarioResult } from "@/types/scenario"
 
 export const baselineScenario: ScenarioInput = {
-  rainfallDeficitPct: 15,
-  tempRiseC: 1.0,
-  extraDrySpellDays: 5,
-  variabilityPct: 20,
+  rainfallDeficitPct: 0,
+  tempRiseC: 0,
+  extraDrySpellDays: 0,
+  variabilityPct: 0,
 }
 
-export function runScenario(input: ScenarioInput): ScenarioResult {
-  const stress =
-    (input.rainfallDeficitPct / 40) * 0.4 +
-    (input.tempRiseC / 3) * 0.3 +
-    (input.extraDrySpellDays / 15) * 0.3
+const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
 
-  const results: ScenarioStrategyResult[] = mockStrategies.map((s, i) => {
-    const climatePenalty = Math.round(stress * (s.kind === "climate" ? 10 : 25))
-    const waterPenalty = Math.round(stress * (s.kind === "soil" ? 12 : 28))
+// DEMO ONLY. A simple placeholder calculation to preview the interaction.
+// The real stress test will run on the backend (POST /scenarios/evaluate).
+function stress(scores: Scores, hasFallow: boolean, input: ScenarioInput): Scores {
+  const rain = input.rainfallDeficitPct / 40
+  const heat = input.tempRiseC / 3
+  const dry = input.extraDrySpellDays / 15
+  const vari = input.variabilityPct / 50
+  const waterVuln = 0.4 + (100 - scores.waterEfficiency) / 100
+  const heatVuln = 0.4 + (100 - scores.climateCompatibility) / 100
 
-    const newScores = {
-      ...s.scores,
-      climateCompatibility: Math.max(10, s.scores.climateCompatibility - climatePenalty),
-      waterEfficiency: Math.max(10, s.scores.waterEfficiency - waterPenalty),
-      economicPotential: Math.max(10, s.scores.economicPotential - Math.round(stress * 15)),
-    }
+  return {
+    ...scores,
+    waterEfficiency: clamp(scores.waterEfficiency - 22 * rain * waterVuln - 14 * dry * waterVuln),
+    climateCompatibility: clamp(
+      scores.climateCompatibility - 20 * heat * heatVuln - 10 * vari * heatVuln - 8 * rain * heatVuln
+    ),
+    soilImprovement: clamp(scores.soilImprovement - 6 * rain),
+    nitrogenCycling: clamp(scores.nitrogenCycling - 4 * rain),
+    erosionProtection: clamp(scores.erosionProtection - 10 * dry * (hasFallow ? 1.6 : 0.5)),
+  }
+}
 
-    const baselineOverall = s.overallScore
-    const overallScore = Math.max(
-      10,
-      Math.round(
-        baselineOverall -
-          stress * (s.kind === "climate" ? 12 : s.kind === "soil" ? 18 : 28)
-      )
-    )
-
+export function runScenario(input: ScenarioInput, weights: Weights = defaultWeights): ScenarioResult {
+  const rows = mockStrategies.map((s) => {
+    const hasFallow = s.sequence.some((c) => c.crop === "Fallow")
+    const stressed = stress(s.scores, hasFallow, input)
     return {
       strategyId: s.id,
       name: s.name,
       kind: s.kind,
-      scores: newScores,
       baselineScores: s.scores,
-      overallScore,
-      baselineOverall,
-      rank: 1,
-      baselineRank: i + 1,
+      scores: stressed,
+      baselineOverall: weightedScore(s.scores, weights),
+      overallScore: weightedScore(stressed, weights),
     }
   })
 
-  results.sort((a, b) => b.overallScore - a.overallScore)
-  results.forEach((r, idx) => {
-    r.rank = idx + 1
-  })
+  const rankBy = (key: "overallScore" | "baselineOverall") => {
+    const sorted = [...rows].sort((a, b) => b[key] - a[key])
+    return Object.fromEntries(sorted.map((r, i) => [r.strategyId, i + 1])) as Record<string, number>
+  }
+  const now = rankBy("overallScore")
+  const before = rankBy("baselineOverall")
 
-  return { input, results }
+  return {
+    input,
+    results: rows
+      .map((r) => ({ ...r, rank: now[r.strategyId], baselineRank: before[r.strategyId] }))
+      .sort((a, b) => a.rank - b.rank),
+  }
 }
