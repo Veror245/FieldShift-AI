@@ -13,6 +13,8 @@ def get_llm() -> BaseChatModel:
             model="gemma-4-31b-it", # type: ignore
             temperature=0.3, # type: ignore
             api_key=os.environ["FREE_KEY"], # type: ignore
+            max_retries=3,
+            timeout=45,
             base_url="http://localhost:3001/v1" # type: ignore
         )
 
@@ -31,6 +33,8 @@ def get_llm() -> BaseChatModel:
             model="gemma-4-31b-it", # type: ignore
             temperature=0.3, # type: ignore
             api_key=os.environ["GOOGLE_API_KEY"], # type: ignore
+            max_retries=3,
+            timeout=45,
         )
 
     raise ValueError(f"unknown LLM_PROVIDER: {provider}")

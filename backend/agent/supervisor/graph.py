@@ -14,6 +14,11 @@ def supervisor_node(state: InvestigationState) -> dict:
             next_action= ["await_farmer"],
             missing_info= ["What are your main goals for this field?"],
         )
+    
+    failed = [t for t in state.get("tasks", []) if t["status"] == "failed"]
+    if any(t["agent"] == "earth_obs" for t in failed) and state.get("step_count", 0) > 3:
+        return advance(next_action=["await_farmer"],
+                    missing_info=["Earth observation data unavailable. Please retry."])
         
     if state.get("step_count", 0) >= state.get("max_steps", 25):
         return advance(next_action=["finalize"])
