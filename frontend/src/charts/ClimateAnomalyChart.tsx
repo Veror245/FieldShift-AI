@@ -5,6 +5,7 @@ import {
   Cell,
   ComposedChart,
   Line,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -58,6 +59,9 @@ function ChartTooltip({
 }
 
 export default function ClimateAnomalyChart({ seasons }: { seasons: ClimateSeason[] }) {
+  const rainfallValues = seasons.map((s) => s.rainfallMm)
+  const longTermAvg = rainfallValues.reduce((a, b) => a + b, 0) / (rainfallValues.length || 1)
+
   return (
     <div className="h-60 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -92,6 +96,13 @@ export default function ClimateAnomalyChart({ seasons }: { seasons: ClimateSeaso
             tickLine={false}
             tick={{ fontSize: 10, fill: "#7E7A6E" }}
             tickFormatter={(v) => `${v}`}
+            label={{
+              value: "Rainfall (mm)",
+              angle: -90,
+              position: "insideLeft",
+              offset: 24,
+              style: { fontSize: 10, fill: "#7E7A6E" },
+            }}
           />
 
           <YAxis
@@ -102,11 +113,32 @@ export default function ClimateAnomalyChart({ seasons }: { seasons: ClimateSeaso
             domain={["dataMin - 0.5", "dataMax + 0.5"]}
             tick={{ fontSize: 10, fill: "#7E7A6E" }}
             tickFormatter={(v) => `${v.toFixed(1)}°`}
+            label={{
+              value: "Mean temp (°C)",
+              angle: 90,
+              position: "insideRight",
+              offset: 8,
+              style: { fontSize: 10, fill: "#7E7A6E" },
+            }}
           />
 
           <Tooltip
             content={<ChartTooltip />}
             cursor={{ fill: "rgba(196, 179, 147, 0.15)", radius: 6 }}
+          />
+
+          {/* long-term average reference line, computed from the data itself */}
+          <ReferenceLine
+            yAxisId="rain"
+            y={Math.round(longTermAvg)}
+            stroke="#5C5A52"
+            strokeDasharray="6 4"
+            label={{
+              value: `${Math.round(longTermAvg)} mm avg`,
+              position: "insideTopLeft",
+              fontSize: 10,
+              fill: "#5C5A52",
+            }}
           />
 
           <Bar
