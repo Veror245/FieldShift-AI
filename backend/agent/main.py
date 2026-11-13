@@ -60,8 +60,6 @@ app = graph.compile()
 
 if __name__ == "__main__":
     
-    
-    
     async def main():
         request = {
             "investigation_id": f"test-{uuid.uuid4().hex[:8]}",
