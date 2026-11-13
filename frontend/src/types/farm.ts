@@ -57,3 +57,28 @@ export const farmSchema = z
   })
 
 export type FarmProfile = z.infer<typeof farmSchema>
+
+/** Farmer evaluation priorities used in the report (0–1 scale). */
+export type Priorities = {
+  water: number
+  soil: number
+  climate: number
+  profit: number
+  effort: number
+}
+
+export const defaultPriorities: Priorities = {
+  water: 0.5,
+  soil: 0.5,
+  climate: 0.5,
+  profit: 0.5,
+  effort: 0.5,
+}
+
+export const priorityLabels: Record<keyof Priorities, { label: string; hint: string }> = {
+  water:   { label: "Water conservation",  hint: "Prioritize low water demand & drought buffer" },
+  soil:    { label: "Soil regeneration",   hint: "Prioritize organic matter & nitrogen fixing" },
+  climate: { label: "Climate resilience",  hint: "Prioritize heat tolerance & dry spell resilience" },
+  profit:  { label: "Economic return",     hint: "Prioritize cash crops & harvest margin" },
+  effort:  { label: "Operational ease",    hint: "Prioritize manageable labour & familiar seeds" },
+}

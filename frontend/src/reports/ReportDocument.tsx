@@ -206,7 +206,7 @@ export default function ReportDocument({
   const driest = seasons.reduce((a, b) => (b.rainfallMm < a.rainfallMm ? b : a))
   const unusual = seasons.filter((s) => s.isAnomaly)
 
-  const activePriorities = priorities ?? profile?.priorities ?? defaultPriorities
+  const activePriorities = priorities ?? defaultPriorities
   const bighaApprox = (hectares * 7.47).toFixed(2)
   const acreApprox = (hectares * 2.47105).toFixed(2)
 
@@ -363,7 +363,7 @@ export default function ReportDocument({
             const val = activePriorities[key] ?? 0.5
             return (
               <div
-                key={key}
+                key={String(key)}
                 className="flex items-center justify-between gap-3 rounded-xl border border-forest/10 bg-forest/5 px-3 py-2"
               >
                 <div className="min-w-0 flex-1">
@@ -590,7 +590,7 @@ export default function ReportDocument({
           <div className="mt-3">
             <p className="text-sm font-semibold">Recommended next steps</p>
             <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
-              {investigationResult.advisor.next_steps.map((step, idx) => (
+              {investigationResult.advisor.next_steps.map((step: string, idx: number) => (
                 <li key={idx}>{step}</li>
               ))}
             </ul>
