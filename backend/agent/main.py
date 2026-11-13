@@ -1,3 +1,4 @@
+import pandas as pd
 import uuid
 
 from langgraph.graph import START, END, StateGraph
@@ -5,6 +6,7 @@ from ..agent.supervisor.state import InvestigationState, AgentName
 from ..agent.supervisor.graph import supervisor_node, AGENT_NODES, route_from_supervisor
 from ..agent.earth_obser.graph import earth_obs_node
 from ..agent.soil.graph import soil_node
+from ..agent.rotation.graph import rotation_node
 
 import asyncio
 
@@ -22,7 +24,7 @@ graph.add_node("supervisor", supervisor_node)
 graph.add_node("earth_obs", earth_obs_node)
 graph.add_node("soil", soil_node)
 graph.add_node("climate", stub_climate)
-graph.add_node("rotation", stub_rotation)
+graph.add_node("rotation", rotation_node)
 graph.add_node("advisor", stub_advisor)
 graph.add_node("await_farmer", await_farmer)
 graph.add_node("join", join_evidence_node)
@@ -113,3 +115,6 @@ if __name__ == "__main__":
     # with open("graph.png", "wb") as f:
     #     f.write(png)
 
+df = pd.read_csv("backend/data/earth_obs/test-b311448d.csv", index_col=0)
+print(df["precip_mm"].describe())
+print(df["precip_mm"].sum())
