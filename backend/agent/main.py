@@ -7,6 +7,7 @@ from ..agent.supervisor.graph import supervisor_node, AGENT_NODES, route_from_su
 from ..agent.earth_obser.graph import earth_obs_node
 from ..agent.soil.graph import soil_node
 from ..agent.rotation.graph import rotation_node
+from ..agent.advisor.graph import advisor_node
 
 import asyncio
 
@@ -25,7 +26,7 @@ graph.add_node("earth_obs", earth_obs_node)
 graph.add_node("soil", soil_node)
 graph.add_node("climate", stub_climate)
 graph.add_node("rotation", rotation_node)
-graph.add_node("advisor", stub_advisor)
+graph.add_node("advisor", advisor_node)
 graph.add_node("await_farmer", await_farmer)
 graph.add_node("join", join_evidence_node)
 
