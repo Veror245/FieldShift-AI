@@ -5,24 +5,32 @@ from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file
 
 def get_llm() -> BaseChatModel:
-    provider = os.getenv("LLM_PROVIDER", "openai").lower()
+    provider = os.getenv("LLM_PROVIDER", "freellm").lower()
 
-    if provider == "openai":
+    if provider == "freellm":
         from langchain_openai import ChatOpenAI
         return ChatOpenAI(
-            model="gemma-4-31b-it",
-            temperature=0.3,
+            model="gemma-4-31b-it", # type: ignore
+            temperature=0.3, # type: ignore
             api_key=os.environ["FREE_KEY"], # type: ignore
-            base_url="http://localhost:3001/v1"
+            base_url="http://localhost:3001/v1" # type: ignore
         )
 
     if provider == "ollama":
         from langchain_ollama import ChatOllama
         return ChatOllama(
-            model="gemma4:31b-cloud",
+            model="gemma4:31b-cloud", # type: ignore
             temperature=0.3,
             num_predict=2500,
             api_key =os.environ["OLLAMA_API_KEY"], # type: ignore
+        )
+    
+    if provider == "google":
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        return ChatGoogleGenerativeAI(
+            model="gemma-4-31b-it", # type: ignore
+            temperature=0.3, # type: ignore
+            api_key=os.environ["GOOGLE_API_KEY"], # type: ignore
         )
 
     raise ValueError(f"unknown LLM_PROVIDER: {provider}")

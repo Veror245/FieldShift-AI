@@ -56,10 +56,11 @@ graph.add_conditional_edges(
 )
 
 
+app = graph.compile()
 
 if __name__ == "__main__":
     
-    app = graph.compile()
+    
     
     async def main():
         request = {

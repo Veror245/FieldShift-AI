@@ -37,3 +37,54 @@ class EarthObsResult(BaseModel):
     wind_speed_ms: float | None = Field(None, description="Mean wind speed, m/s")
     precipitation_mm: float | None = Field(None, description="Total precipitation, mm")
     solar_radiation_mj: float | None = Field(None, description="Mean solar radiation, MJ/m²/day")
+
+
+class FieldLocation(BaseModel):
+    lat: float
+    lon: float
+    region: str
+
+
+class RotationEntry(BaseModel):
+    crop_id: str
+    season: Literal["kharif", "rabi", "zaid"]
+    year: int
+
+
+class SoilInputs(BaseModel):
+    ph: float | None = None
+    organic_carbon_pct: float | None = None
+    texture: Literal["sandy","loamy_sand","sandy_loam","loam","silt_loam","clay_loam","clay"] | None = None
+    nitrogen_ppm: float | None = None
+    sampled_at: str | None = None
+    lab_name: str | None = None
+
+
+class Constraints(BaseModel):
+    forbidden_crops: list[str] = Field(default_factory=list)
+    required_crops: list[str] = Field(default_factory=list)
+    max_water_requirement: Literal["low","medium","high"] | None = None
+
+
+class InvestigationRequest(BaseModel):
+    farm_id: str
+    lat: float
+    lon: float
+    region: str
+    current_rotation: list[RotationEntry]
+    soil_inputs: SoilInputs
+    objectives: str = Field(..., min_length=5)
+    priorities: dict[str, float] | None = None
+    constraints: Constraints = Field(default_factory=Constraints)
+
+
+class InvestigationResponse(BaseModel):
+    investigation_id: str
+    status: Literal["complete", "partial", "failed"]
+    farm_id: str
+    advisor: dict | None
+    rotation: dict | None
+    agronomy: dict | None
+    earth_obs: dict | None
+    error: str | None = None
+    created_at: datetime
