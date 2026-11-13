@@ -82,7 +82,10 @@ export default function FarmOverview() {
         </Button>
       </motion.div>
 
-      <motion.ol variants={pageItem} className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <motion.ol
+        variants={pageItem}
+        className="mb-6 grid max-sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3"
+      >
         {steps.map((s, i) => (
           <li key={s.label}>
             <Link

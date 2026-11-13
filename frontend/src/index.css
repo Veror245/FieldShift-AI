@@ -263,8 +263,15 @@
     border: 0;
     box-shadow: none;
     padding: 0;
+    background: #ffffff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+  /* Keep every section intact across page breaks */
+  #report-root section,
+  #report-root tr,
+  #report-root li {
+    break-inside: avoid;
   }
 }
 
