@@ -5,9 +5,17 @@ export type GeocodedAddress = {
   state?: string
   country?: string
   formatted: string
+  lat?: number
+  lng?: number
 }
 
 const cache = new Map<string, GeocodedAddress>()
+
+export function formatCoordinates(lat: number, lng: number): string {
+  const latDir = lat >= 0 ? "N" : "S"
+  const lngDir = lng >= 0 ? "E" : "W"
+  return `${Math.abs(lat).toFixed(4)}° ${latDir}, ${Math.abs(lng).toFixed(4)}° ${lngDir}`
+}
 
 export function computePolygonCentroid(coords: [number, number][]): [number, number] {
   if (!coords || coords.length === 0) return [0, 0]
@@ -30,6 +38,8 @@ function resolveLocalRegion(lng: number, lat: number): GeocodedAddress | null {
       state: "West Bengal",
       country: "India",
       formatted: "Panagarh, Paschim Bardhaman, West Bengal, India",
+      lat,
+      lng,
     }
   }
 
@@ -40,6 +50,8 @@ function resolveLocalRegion(lng: number, lat: number): GeocodedAddress | null {
       state: "West Bengal",
       country: "India",
       formatted: "Bardhaman, Purba Bardhaman, West Bengal, India",
+      lat,
+      lng,
     }
   }
 
@@ -50,6 +62,8 @@ function resolveLocalRegion(lng: number, lat: number): GeocodedAddress | null {
       state: "West Bengal",
       country: "India",
       formatted: "Kolkata, West Bengal, India",
+      lat,
+      lng,
     }
   }
 
@@ -58,6 +72,8 @@ function resolveLocalRegion(lng: number, lat: number): GeocodedAddress | null {
       state: "West Bengal",
       country: "India",
       formatted: "West Bengal, India",
+      lat,
+      lng,
     }
   }
 
@@ -77,6 +93,8 @@ function resolveLocalRegion(lng: number, lat: number): GeocodedAddress | null {
       state,
       country: "India",
       formatted: state === "India" ? "India" : `${state}, India`,
+      lat,
+      lng,
     }
   }
 
@@ -84,6 +102,8 @@ function resolveLocalRegion(lng: number, lat: number): GeocodedAddress | null {
     return {
       country: "United States",
       formatted: "United States",
+      lat,
+      lng,
     }
   }
 
@@ -134,6 +154,8 @@ export async function reverseGeocode(lng: number, lat: number): Promise<Geocoded
         state,
         country,
         formatted,
+        lat,
+        lng,
       }
       cache.set(key, result)
       return result
@@ -141,9 +163,12 @@ export async function reverseGeocode(lng: number, lat: number): Promise<Geocoded
   } catch {
   }
 
-  const fallback = local || {
-    formatted: `${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`,
-    country: "India",
+  const fallback: GeocodedAddress = {
+    ...(local || {}),
+    formatted: local?.formatted || `${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`,
+    country: local?.country || "India",
+    lat,
+    lng,
   }
   cache.set(key, fallback)
   return fallback
