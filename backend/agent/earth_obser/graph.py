@@ -57,7 +57,7 @@ async def earth_obs_node(state: EarthObsState) -> dict:
     task_id = f"earth_obs:{uuid4()}"
     lat = state["lat"] # type: ignore
     lon = state["lon"] # type: ignore
-    start, end = "20180101", "20231231"
+    start, end = "19950101", "20251231"
 
    
     try:
