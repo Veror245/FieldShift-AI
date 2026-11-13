@@ -4,9 +4,11 @@ import "maplibre-gl/dist/maplibre-gl.css"
 import { TerraDraw, TerraDrawPolygonMode, TerraDrawSelectMode } from "terra-draw"
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter"
 import area from "@turf/area"
-import { Layers, Pencil, Satellite, Search, Trash2 } from "lucide-react"
+import { Layers, LocateFixed, MapPin, Pencil, Satellite, Search, Trash2 } from "lucide-react"
+import ThinkingOrb from "@/components/common/ThinkingOrb"
 import { Button } from "@/components/ui/button"
 import { dateFor, nasaLayers, tileUrl } from "@/lib/nasaLayers"
+import { computePolygonCentroid, reverseGeocode, type GeocodedAddress } from "@/utils/reverseGeocode"
 import type { FieldPolygon } from "@/types/geojson"
 
 const nasaSources = Object.fromEntries(
@@ -45,7 +47,15 @@ const mapStyle: maplibregl.StyleSpecification = {
   },
   layers: [
     { id: "streets", type: "raster", source: "streets", layout: { visibility: "none" } },
-    { id: "satellite", type: "raster", source: "satellite" },
+    {
+      id: "satellite",
+      type: "raster",
+      source: "satellite",
+      paint: {
+        "raster-saturation": 0.15,
+        "raster-contrast": 0.05,
+      },
+    },
     ...nasaLayers.map((l) => ({
       id: `nasa-${l.id}`,
       type: "raster" as const,
@@ -58,7 +68,6 @@ const mapStyle: maplibregl.StyleSpecification = {
 
 const coordsKey = (p: FieldPolygon | null) => (p ? JSON.stringify(p.geometry.coordinates) : "")
 
-// Shows the given polygon in the drawing tool. Returns true if it had to change anything.
 function showPolygon(draw: TerraDraw, polygon: FieldPolygon | null): boolean {
   const existing = draw.getSnapshot().filter((f) => f.geometry.type === "Polygon")
   const current = existing.length
@@ -73,7 +82,6 @@ function showPolygon(draw: TerraDraw, polygon: FieldPolygon | null): boolean {
         { type: "Feature", properties: { mode: "polygon" }, geometry: polygon.geometry },
       ] as Parameters<TerraDraw["addFeatures"]>[0])
     } catch {
-      /* ignore an outline the drawing tool cannot show */
     }
   }
   return true
@@ -95,14 +103,17 @@ export default function FieldMap({ polygon, onChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const drawRef = useRef<TerraDraw | null>(null)
+  const locationMarkerRef = useRef<maplibregl.Marker | null>(null)
   const onChangeRef = useRef(onChange)
   const polygonRef = useRef(polygon)
 
   const [ready, setReady] = useState(false)
   const [basemap, setBasemap] = useState<"satellite" | "streets">("satellite")
   const [drawing, setDrawing] = useState(false)
+  const [locating, setLocating] = useState(false)
   const [query, setQuery] = useState("")
   const [message, setMessage] = useState("")
+  const [fieldAddress, setFieldAddress] = useState<GeocodedAddress | null>(null)
   const [panelOpen, setPanelOpen] = useState(false)
   const [active, setActive] = useState<Record<string, boolean>>({})
   const [opacity, setOpacity] = useState(70)
@@ -112,7 +123,6 @@ export default function FieldMap({ polygon, onChange }: Props) {
     polygonRef.current = polygon
   })
 
-  // Create the map and the drawing tool once
   useEffect(() => {
     if (!containerRef.current) return
 
@@ -162,7 +172,6 @@ export default function FieldMap({ polygon, onChange }: Props) {
         const polygons = draw.getSnapshot().filter((f) => f.geometry.type === "Polygon")
         if (polygons.length === 0) return
 
-        // Keep only one field: remove older polygons
         if (polygons.length > 1) {
           draw.removeFeatures(polygons.slice(0, -1).map((f) => f.id as string))
         }
@@ -177,7 +186,6 @@ export default function FieldMap({ polygon, onChange }: Props) {
         }
       })
 
-      // Show a saved field again when coming back to this page
       const saved = polygonRef.current
       if (saved) {
         showPolygon(draw, saved)
@@ -192,12 +200,12 @@ export default function FieldMap({ polygon, onChange }: Props) {
       setReady(false)
       drawRef.current?.stop()
       drawRef.current = null
+      locationMarkerRef.current = null
       map.remove()
       mapRef.current = null
     }
   }, [])
 
-  // Draw a field that was loaded from outside (sample farm, upload, saved)
   useEffect(() => {
     const map = mapRef.current
     const draw = drawRef.current
@@ -209,7 +217,20 @@ export default function FieldMap({ polygon, onChange }: Props) {
     }
   }, [polygon, ready])
 
-  // Satellite or street basemap
+  useEffect(() => {
+    if (!polygon || !polygon.geometry || !polygon.geometry.coordinates[0]?.length) {
+      setFieldAddress(null)
+      return
+    }
+    const coords = polygon.geometry.coordinates[0] as [number, number][]
+    const [lng, lat] = computePolygonCentroid(coords)
+    reverseGeocode(lng, lat).then((res) => {
+      setFieldAddress(res)
+    }).catch(() => {
+      setFieldAddress(null)
+    })
+  }, [polygon])
+
   useEffect(() => {
     const map = mapRef.current
     if (!ready || !map) return
@@ -217,7 +238,6 @@ export default function FieldMap({ polygon, onChange }: Props) {
     map.setLayoutProperty("streets", "visibility", basemap === "streets" ? "visible" : "none")
   }, [basemap, ready])
 
-  // NASA layers on or off, and opacity
   useEffect(() => {
     const map = mapRef.current
     if (!ready || !map) return
@@ -239,6 +259,7 @@ export default function FieldMap({ polygon, onChange }: Props) {
     drawRef.current?.clear()
     drawRef.current?.setMode("select")
     setDrawing(false)
+    setFieldAddress(null)
     onChange(null, 0)
   }
 
@@ -265,11 +286,90 @@ export default function FieldMap({ polygon, onChange }: Props) {
     }
   }
 
+  const locateMe = () => {
+    const map = mapRef.current
+    if (!map) return
+    if (!("geolocation" in navigator)) {
+      setMessage("Your browser does not support location finding.")
+      return
+    }
+    setLocating(true)
+    setMessage("")
+    const startTime = Date.now()
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const elapsed = Date.now() - startTime
+        const minDelay = 1200
+        const remaining = Math.max(0, minDelay - elapsed)
+
+        setTimeout(() => {
+          setLocating(false)
+          const center: [number, number] = [pos.coords.longitude, pos.coords.latitude]
+          if (locationMarkerRef.current) locationMarkerRef.current.remove()
+          const popup = new maplibregl.Popup({ offset: 25, closeButton: false }).setText("Current GPS Location")
+          locationMarkerRef.current = new maplibregl.Marker({ color: "#2563EB" })
+            .setLngLat(center)
+            .setPopup(popup)
+            .addTo(map)
+          map.flyTo({ center, zoom: 16, duration: 1500 })
+        }, remaining)
+      },
+      (err) => {
+        const elapsed = Date.now() - startTime
+        const minDelay = 1000
+        const remaining = Math.max(0, minDelay - elapsed)
+
+        setTimeout(() => {
+          setLocating(false)
+          if (err.code === err.PERMISSION_DENIED) {
+            setMessage("Location permission denied. Allow it in your browser settings, or search for your village instead.")
+          } else if (err.code === err.POSITION_UNAVAILABLE) {
+            setMessage("Could not get your location. Check that location services are on.")
+          } else {
+            setMessage("Getting your location took too long. Try again.")
+          }
+        }, remaining)
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
+  }
+
   const activeCount = Object.values(active).filter(Boolean).length
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-2xl border border-forest/10">
       <div ref={containerRef} className="h-full w-full" />
+
+      <div
+        className={`pointer-events-none absolute inset-0 z-30 flex items-center justify-center transition-all duration-700 ease-in-out ${
+          locating
+            ? "pointer-events-auto bg-stone-900/40 backdrop-blur-md opacity-100"
+            : "pointer-events-none bg-stone-900/0 backdrop-blur-none opacity-0"
+        }`}
+      >
+        <div
+          className={`flex items-center gap-4 rounded-2xl border border-white/20 bg-stone-950/85 px-6 py-4 shadow-2xl backdrop-blur-xl transition-all duration-500 ease-out ${
+            locating ? "scale-100 opacity-100" : "scale-95 opacity-0"
+          }`}
+        >
+          <ThinkingOrb
+            state="searching"
+            size={44}
+            speed={1}
+            theme="dark"
+            aria-label="Agent searching location"
+          />
+          <div className="flex flex-col">
+            <span className="text-sm font-medium tracking-tight text-white">
+              Agent searching…
+            </span>
+            <span className="text-xs text-stone-400">
+              Acquiring GPS coordinates
+            </span>
+          </div>
+        </div>
+      </div>
 
       <form
         onSubmit={search}
@@ -284,6 +384,18 @@ export default function FieldMap({ polygon, onChange }: Props) {
         <Button type="submit" size="icon" className="h-11 w-11 rounded-xl" aria-label="Search">
           <Search className="h-5 w-5" />
         </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          onClick={locateMe}
+          disabled={locating}
+          className="h-11 w-11 rounded-xl bg-white/90 shadow backdrop-blur hover:bg-white"
+          aria-label="Find my GPS location"
+          title="Find my GPS location"
+        >
+          <LocateFixed className={`h-5 w-5 ${locating ? "animate-pulse text-blue-500" : ""}`} />
+        </Button>
       </form>
 
       {message && (
@@ -292,8 +404,20 @@ export default function FieldMap({ polygon, onChange }: Props) {
         </p>
       )}
 
+      {polygon && fieldAddress && !panelOpen && (
+        <div
+          className={`absolute left-3 ${message ? "top-24" : "top-16"} z-20 flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded-xl bg-forest/90 px-3.5 py-2 text-xs text-ivory shadow-lg backdrop-blur`}
+        >
+          <MapPin className="h-3.5 w-3.5 shrink-0 text-sage" />
+          <div className="truncate">
+            <span className="font-medium text-sage/90">Location: </span>
+            <span className="font-semibold">{fieldAddress.formatted}</span>
+          </div>
+        </div>
+      )}
+
       {panelOpen && (
-         <div className="absolute left-3 top-16 z-20 max-h-[calc(100%-11.5rem)] w-72 max-w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur">
+        <div className="absolute left-3 top-16 z-20 max-h-[calc(100%-11.5rem)] w-72 max-w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur">
           <p className="text-sm font-semibold">NASA satellite layers</p>
           <p className="mb-3 text-xs text-forest/60">
             Coarse regional context from NASA GIBS. These are not measurements of your exact field.
@@ -351,6 +475,16 @@ export default function FieldMap({ polygon, onChange }: Props) {
         <Button onClick={startDrawing} className="h-11 rounded-xl">
           <Pencil className="mr-2 h-4 w-4" />
           {drawing ? "Drawing…" : "Draw field"}
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={locateMe}
+          disabled={locating}
+          className="h-11 rounded-xl"
+          title="Use your device GPS to center the map on your location"
+        >
+          <LocateFixed className={`mr-2 h-4 w-4 ${locating ? "animate-pulse text-blue-500" : ""}`} />
+          {locating ? "Locating…" : "My location"}
         </Button>
         <Button variant="secondary" onClick={clearField} className="h-11 rounded-xl">
           <Trash2 className="mr-2 h-4 w-4" />
