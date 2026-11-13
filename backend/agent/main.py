@@ -117,6 +117,6 @@ if __name__ == "__main__":
     # with open("graph.png", "wb") as f:
     #     f.write(png)
 
-df = pd.read_csv("backend/data/earth_obs/test-b311448d.csv", index_col=0)
-print(df["precip_mm"].describe())
-print(df["precip_mm"].sum())
+# df = pd.read_csv("backend/data/earth_obs/test-b311448d.csv", index_col=0)
+# print(df["precip_mm"].describe())
+# print(df["precip_mm"].sum())
