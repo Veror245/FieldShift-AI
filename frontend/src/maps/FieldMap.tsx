@@ -20,7 +20,12 @@ import {
 import ThinkingOrb from "@/components/common/ThinkingOrb"
 import { Button } from "@/components/ui/button"
 import { dateFor, nasaLayers, tileUrl } from "@/lib/nasaLayers"
-import { computePolygonCentroid, reverseGeocode, type GeocodedAddress } from "@/utils/reverseGeocode"
+import {
+  computePolygonCentroid,
+  formatCoordinates,
+  reverseGeocode,
+  type GeocodedAddress,
+} from "@/utils/reverseGeocode"
 import { uiSoundEngine } from "@/utils/uiSoundEngine"
 import type { FieldPolygon } from "@/types/geojson"
 
@@ -129,15 +134,17 @@ function fitTo(map: maplibregl.Map, polygon: FieldPolygon, duration: number) {
 type Props = {
   polygon: FieldPolygon | null
   onChange: (polygon: FieldPolygon | null, hectares: number) => void
+  onLocationFound?: (info: { lat: number; lng: number; address?: GeocodedAddress }) => void
 }
 
-export default function FieldMap({ polygon, onChange }: Props) {
+export default function FieldMap({ polygon, onChange, onLocationFound }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const drawRef = useRef<TerraDraw | null>(null)
   const locationMarkerRef = useRef<maplibregl.Marker | null>(null)
   const onChangeRef = useRef(onChange)
   const polygonRef = useRef(polygon)
+  const onLocationFoundRef = useRef(onLocationFound)
 
   const [ready, setReady] = useState(false)
   const [basemap, setBasemap] = useState<"satellite" | "streets">("satellite")
@@ -149,6 +156,7 @@ export default function FieldMap({ polygon, onChange }: Props) {
   const [panelOpen, setPanelOpen] = useState(false)
   const [active, setActive] = useState<Record<string, boolean>>({})
   const [opacity, setOpacity] = useState(70)
+  const [cursorCoords, setCursorCoords] = useState<[number, number] | null>(null)
 
   const [livePoints, setLivePoints] = useState<[number, number][]>([])
   const [redoStack, setRedoStack] = useState<[number, number][]>([])
@@ -164,6 +172,7 @@ export default function FieldMap({ polygon, onChange }: Props) {
   useEffect(() => {
     onChangeRef.current = onChange
     polygonRef.current = polygon
+    onLocationFoundRef.current = onLocationFound
   })
 
   const projectCoords = useCallback((coords: [number, number][]) => {
@@ -254,6 +263,7 @@ export default function FieldMap({ polygon, onChange }: Props) {
         const centroid = computePolygonCentroid(uniqueCoords)
         reverseGeocode(centroid[0], centroid[1]).then((addr) => {
           setFieldAddress(addr)
+          onLocationFoundRef.current?.({ lat: centroid[1], lng: centroid[0], address: addr })
         })
 
         if (context.mode === "polygon") {
@@ -290,10 +300,19 @@ export default function FieldMap({ polygon, onChange }: Props) {
         const centroid = computePolygonCentroid(uniqueCoords)
         reverseGeocode(centroid[0], centroid[1]).then((addr) => {
           setFieldAddress(addr)
+          onLocationFoundRef.current?.({ lat: centroid[1], lng: centroid[0], address: addr })
         })
       }
 
       setReady(true)
+    })
+
+    map.on("mousemove", (e) => {
+      setCursorCoords([e.lngLat.lng, e.lngLat.lat])
+    })
+
+    map.on("mouseout", () => {
+      setCursorCoords(null)
     })
 
     return () => {
@@ -337,6 +356,7 @@ export default function FieldMap({ polygon, onChange }: Props) {
       const centroid = computePolygonCentroid(uniqueCoords)
       reverseGeocode(centroid[0], centroid[1]).then((addr) => {
         setFieldAddress(addr)
+        onLocationFoundRef.current?.({ lat: centroid[1], lng: centroid[0], address: addr })
       })
     } else if (!polygon) {
       setSavedCoords([])
@@ -527,6 +547,7 @@ export default function FieldMap({ polygon, onChange }: Props) {
     const centroid = computePolygonCentroid(livePoints)
     reverseGeocode(centroid[0], centroid[1]).then((addr) => {
       setFieldAddress(addr)
+      onLocationFoundRef.current?.({ lat: centroid[1], lng: centroid[0], address: addr })
     })
   }, [livePoints, projectCoords])
 
@@ -614,6 +635,7 @@ export default function FieldMap({ polygon, onChange }: Props) {
 
           reverseGeocode(longitude, latitude).then((addr) => {
             setFieldAddress(addr)
+            onLocationFoundRef.current?.({ lat: latitude, lng: longitude, address: addr })
           })
         }
         setTimeout(() => {
@@ -874,9 +896,16 @@ export default function FieldMap({ polygon, onChange }: Props) {
       </form>
 
       {fieldAddress && (
-        <div className="absolute left-3 top-16 z-20 flex items-center gap-1.5 rounded-xl border border-forest/10 bg-white/90 px-3 py-1.5 text-xs font-medium text-forest shadow backdrop-blur">
-          <MapPin className="h-3.5 w-3.5 text-sage" />
-          <span>Location: {fieldAddress.formatted}</span>
+        <div className="absolute left-3 top-16 z-20 flex flex-wrap items-center gap-2 rounded-xl border border-forest/10 bg-white/90 px-3 py-1.5 text-xs font-medium text-forest shadow backdrop-blur">
+          <div className="flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5 text-sage" />
+            <span>Location: {fieldAddress.formatted}</span>
+          </div>
+          {fieldAddress.lat !== undefined && fieldAddress.lng !== undefined && (
+            <span className="rounded bg-forest/10 px-1.5 py-0.5 font-mono text-[11px] text-forest/80">
+              {formatCoordinates(fieldAddress.lat, fieldAddress.lng)}
+            </span>
+          )}
         </div>
       )}
 
@@ -884,6 +913,12 @@ export default function FieldMap({ polygon, onChange }: Props) {
         <p className="absolute left-3 top-24 z-20 rounded-lg bg-white/95 px-3 py-1 text-xs text-forest shadow">
           {message}
         </p>
+      )}
+
+      {cursorCoords && (
+        <div className="pointer-events-none absolute bottom-3 right-16 z-10 hidden rounded-lg border border-forest/10 bg-white/85 px-2.5 py-1 font-mono text-[11px] text-forest/80 shadow backdrop-blur sm:block">
+          {formatCoordinates(cursorCoords[1], cursorCoords[0])}
+        </div>
       )}
 
       <AnimatePresence>
