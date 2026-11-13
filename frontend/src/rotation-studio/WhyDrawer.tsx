@@ -1,9 +1,11 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { motion } from "framer-motion"
 import { FlaskConical } from "lucide-react"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getExplanation, USE_MOCK } from "@/services/api"
+import { pageContainer, pageItem } from "@/lib/motion"
 import type { EvidenceKind, Level, Strategy } from "@/types/api"
 
 const kindLabel: Record<EvidenceKind, string> = {
@@ -137,15 +139,23 @@ export default function WhyDrawer({ strategy, onClose }: Props) {
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-8 p-6">
+        <motion.div
+          variants={pageContainer}
+          initial="hidden"
+          animate="visible"
+          className="space-y-8 p-6"
+        >
           {USE_MOCK && (
-            <div className="flex items-start gap-3 rounded-xl border border-sun/40 bg-sun/10 p-3 text-xs">
+            <motion.div
+              variants={pageItem}
+              className="flex items-start gap-3 rounded-xl border border-sun/40 bg-sun/10 p-3 text-xs"
+            >
               <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-sun" />
               <p>
                 <strong>Demo data.</strong> These explanations and evidence records are
                 placeholders, not real analysis results.
               </p>
-            </div>
+            </motion.div>
           )}
 
           {isLoading && (
@@ -162,17 +172,20 @@ export default function WhyDrawer({ strategy, onClose }: Props) {
 
           {data && (
             <>
-              <section className="space-y-3 rounded-2xl bg-white p-4">
+              <motion.section
+                variants={pageItem}
+                className="space-y-3 rounded-2xl bg-white p-4"
+              >
                 <h3 className="font-semibold">How reliable is this?</h3>
                 <LevelBar label="Data completeness" level={data.confidence.completeness} />
                 <LevelBar label="Data recency" level={data.confidence.recency} />
                 <LevelBar label="Observation resolution" level={data.confidence.resolution} />
                 <p className="text-xs text-forest/60">{data.confidence.note}</p>
-              </section>
+              </motion.section>
 
-              <section className="space-y-5">
+              <motion.section variants={pageItem} className="space-y-5">
                 {questions.map((item, i) => (
-                  <div key={item.q}>
+                  <motion.div key={item.q} variants={pageItem}>
                     <p className="mb-1.5 text-sm font-semibold">
                       {i + 1}. {item.q}
                     </p>
@@ -198,16 +211,17 @@ export default function WhyDrawer({ strategy, onClose }: Props) {
                         <Cite ids={item.ids} onPick={pick} />
                       </>
                     )}
-                  </div>
+                  </motion.div>
                 ))}
-              </section>
+              </motion.section>
 
-              <section>
+              <motion.section variants={pageItem}>
                 <h3 className="mb-3 font-semibold">Evidence</h3>
                 <div className="space-y-3">
                   {evidence.map((e) => (
-                    <div
+                    <motion.div
                       key={e.id}
+                      variants={pageItem}
                       id={`ev-${e.id}`}
                       className={`rounded-xl border bg-white p-4 text-sm transition-shadow ${
                         highlight === e.id ? "border-forest ring-2 ring-forest/30" : "border-forest/10"
@@ -239,22 +253,22 @@ export default function WhyDrawer({ strategy, onClose }: Props) {
                         </div>
                       </dl>
                       {e.note && <p className="mt-2 text-xs text-forest/60">{e.note}</p>}
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
-              </section>
+              </motion.section>
 
-              <section>
+              <motion.section variants={pageItem}>
                 <h3 className="mb-2 font-semibold">Limitations</h3>
                 <ul className="list-disc space-y-1 pl-5 text-xs text-forest/70">
                   {data.limitations.map((l) => (
                     <li key={l}>{l}</li>
                   ))}
                 </ul>
-              </section>
+              </motion.section>
             </>
           )}
-        </div>
+        </motion.div>
       </SheetContent>
     </Sheet>
   )

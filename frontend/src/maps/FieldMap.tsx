@@ -215,10 +215,10 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
         modes: [
           new TerraDrawPolygonMode({
             styles: {
-              fillColor: "#1E3A2F",
-              fillOpacity: 0.25,
+              fillColor: "#2563EB",
+              fillOpacity: 0.15,
               outlineColor: "#2563EB",
-              outlineWidth: 3,
+              outlineWidth: 2,
             },
           }),
           new TerraDrawSelectMode({
@@ -231,10 +231,11 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
               },
             },
             styles: {
-              selectedPolygonColor: "#1E3A2F",
-              selectedPolygonFillOpacity: 0.25,
+              selectedPolygonColor: "#2563EB",
+              selectedPolygonFillOpacity: 0.15,
+              // committed field: blue transparent interior + strong outline
               selectedPolygonOutlineColor: "#2563EB",
-              selectedPolygonOutlineWidth: 3,
+              selectedPolygonOutlineWidth: 4,
             },
           }),
         ],

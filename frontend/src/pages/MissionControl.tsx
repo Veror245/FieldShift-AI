@@ -88,7 +88,9 @@ export default function MissionControl() {
       </motion.div>
 
       <motion.div variants={pageItem} className="grid gap-6 lg:grid-cols-2">
-        <AgentStepper events={events} />
+        <div className="lg:max-h-[calc(100vh-220px)] lg:overflow-y-auto lg:pr-1">
+          <AgentStepper events={events} />
+        </div>
         <EventTerminal events={events} />
       </motion.div>
 
