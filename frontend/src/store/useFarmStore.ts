@@ -2,40 +2,66 @@ import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import type { FieldPolygon } from "@/types/geojson"
 import type { FarmProfile } from "@/types/farm"
+import { defaultWeights, type Weights } from "@/lib/scoring"
+
+const newId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0
+        return (c === "x" ? r : (r & 0x3) | 0x8).toString(16)
+      })
 
 type FarmState = {
+  farmId: string | null
+  investigationId: string | null
   polygon: FieldPolygon | null
   hectares: number
   profile: FarmProfile | null
   selectedStrategyId: string | null
-  locationAddress: string | null
-  setField: (polygon: FieldPolygon | null, hectares: number, locationAddress?: string | null) => void
+  weights: Weights
+  ensureFarmId: () => string
+  setInvestigationId: (id: string | null) => void
+  setField: (polygon: FieldPolygon | null, hectares: number) => void
   setProfile: (profile: FarmProfile) => void
-  setLocationAddress: (locationAddress: string | null) => void
   selectStrategy: (id: string | null) => void
+  setWeights: (weights: Weights) => void
   resetFarm: () => void
 }
 
 export const useFarmStore = create<FarmState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
+      farmId: null,
+      investigationId: null,
       polygon: null,
       hectares: 0,
       profile: null,
       selectedStrategyId: null,
-      locationAddress: null,
-      setField: (polygon, hectares, locationAddress) =>
-        set((state) => ({
-          polygon,
-          hectares,
-          locationAddress: locationAddress !== undefined ? locationAddress : state.locationAddress,
-        })),
+      weights: defaultWeights,
+      ensureFarmId: () => {
+        const existing = get().farmId
+        if (existing) return existing
+        const id = newId()
+        set({ farmId: id })
+        return id
+      },
+      setInvestigationId: (id) => set({ investigationId: id }),
+      setField: (polygon, hectares) => set({ polygon, hectares }),
       setProfile: (profile) => set({ profile }),
-      setLocationAddress: (locationAddress) => set({ locationAddress }),
       selectStrategy: (id) => set({ selectedStrategyId: id }),
+      setWeights: (weights) => set({ weights }),
       resetFarm: () =>
-        set({ polygon: null, hectares: 0, profile: null, selectedStrategyId: null, locationAddress: null }),
+        set({
+          farmId: null,
+          investigationId: null,
+          polygon: null,
+          hectares: 0,
+          profile: null,
+          selectedStrategyId: null,
+          weights: defaultWeights,
+        }),
     }),
-    { name: "fieldshift-farm" }
+    { name: "fieldshift-farm-v2" }
   )
 )

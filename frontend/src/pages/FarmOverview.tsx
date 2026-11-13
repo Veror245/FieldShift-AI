@@ -20,10 +20,14 @@ const waterLabel: Record<FarmProfile["water"], string> = {
 }
 
 export default function FarmOverview() {
-  const { polygon, hectares, profile, selectedStrategyId, resetFarm } = useFarmStore()
+  const { polygon, hectares, profile, selectedStrategyId, weights, resetFarm } = useFarmStore()
   const climate = useQuery({ queryKey: ["climate"], queryFn: getClimateFindings })
   const alerts = useQuery({ queryKey: ["watch-alerts"], queryFn: getWatchAlerts })
-  const strategies = useQuery({ queryKey: ["strategies"], queryFn: getStrategies })
+    const strategies = useQuery({
+    queryKey: ["strategies", weights],
+    queryFn: () => getStrategies(weights),
+    staleTime: 60_000,
+  })
 
   const selected = strategies.data?.find((s) => s.id === selectedStrategyId)
   const newAlerts = alerts.data?.filter((a) => a.status === "new") ?? []
@@ -116,9 +120,13 @@ export default function FarmOverview() {
                 <p className="text-lg font-bold">{profile.farmName}</p>
                 <p className="text-forest/70">{hectares.toFixed(2)} ha · {waterLabel[profile.water]}</p>
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {profile.rotation.map((c, i) => (
-                    <span key={`${c}-${i}`} className="rounded-full bg-forest px-2.5 py-1 text-xs text-ivory">
-                      {i + 1}. {c}
+                  
+                                    {profile.rotation.map((c, i) => (
+                    <span
+                      key={`${c.crop}-${i}`}
+                      className="rounded-full bg-forest px-2.5 py-1 text-xs text-ivory"
+                    >
+                      {i + 1}. {c.crop}
                     </span>
                   ))}
                 </div>

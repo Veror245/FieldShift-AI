@@ -10,9 +10,13 @@ import { getClimateFindings, getExplanation, getStrategies, USE_MOCK } from "@/s
 import { useFarmStore } from "@/store/useFarmStore"
 
 export default function ReportsPage() {
-  const { profile, hectares, polygon, selectedStrategyId } = useFarmStore()
+  const { profile, hectares, polygon, selectedStrategyId, weights } = useFarmStore()
 
-  const strategies = useQuery({ queryKey: ["strategies"], queryFn: getStrategies })
+  const strategies = useQuery({
+    queryKey: ["strategies", weights],
+    queryFn: () => getStrategies(weights),
+    staleTime: 60_000,
+  })
   const climate = useQuery({ queryKey: ["climate"], queryFn: getClimateFindings })
   const explanation = useQuery({
     queryKey: ["explanation", selectedStrategyId],
@@ -22,7 +26,8 @@ export default function ReportsPage() {
 
   const selected = strategies.data?.find((s) => s.id === selectedStrategyId)
   const corners = polygon ? polygon.geometry.coordinates[0].length - 1 : 0
-  const loading = strategies.isLoading || climate.isLoading || (!!selectedStrategyId && explanation.isLoading)
+  const loading =
+    strategies.isLoading || climate.isLoading || (!!selectedStrategyId && explanation.isLoading)
   const failed = strategies.isError || climate.isError || explanation.isError
 
   return (
@@ -81,6 +86,7 @@ export default function ReportsPage() {
             selected={selected}
             climate={climate.data}
             explanation={explanation.data}
+            weights={weights}
             isDemo={USE_MOCK}
           />
         </div>

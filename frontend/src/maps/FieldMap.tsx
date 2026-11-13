@@ -6,22 +6,55 @@ import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter"
 import area from "@turf/area"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  CheckIcon,
-  LayersIcon,
-  MapPinIcon,
-  PencilIcon,
-  PlusIcon,
-  RotateCcwIcon,
-  SearchIcon,
-  TrashIcon,
-} from "@/components/common/Icons"
+  Check,
+  Layers,
+  LocateFixed,
+  MapPin,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Satellite,
+  Search,
+  Trash2,
+} from "lucide-react"
+import ThinkingOrb from "@/components/common/ThinkingOrb"
 import { Button } from "@/components/ui/button"
+import { dateFor, nasaLayers, tileUrl } from "@/lib/nasaLayers"
+import { computePolygonCentroid, reverseGeocode, type GeocodedAddress } from "@/utils/reverseGeocode"
 import { uiSoundEngine } from "@/utils/uiSoundEngine"
-import { initSatelliteTileProtocol, prewarmWestBengalTiles } from "@/utils/satelliteTileCache"
-import { reverseGeocode, computePolygonCentroid } from "@/utils/reverseGeocode"
 import type { FieldPolygon } from "@/types/geojson"
 
-initSatelliteTileProtocol(maplibregl)
+function distanceMeters(c1?: [number, number], c2?: [number, number]): number {
+  if (!c1 || !c2) return 0
+  const R = 6371000
+  const dLat = ((c2[1] - c1[1]) * Math.PI) / 180
+  const dLng = ((c2[0] - c1[0]) * Math.PI) / 180
+  const lat1 = (c1[1] * Math.PI) / 180
+  const lat2 = (c2[1] * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return Math.round(R * c)
+}
+
+function formatDist(m: number): string {
+  if (m < 1000) return `${m} m`
+  return `${(m / 1000).toFixed(1)} km`
+}
+
+const nasaSources = Object.fromEntries(
+  nasaLayers.map((l) => [
+    `nasa-${l.id}`,
+    {
+      type: "raster" as const,
+      tiles: [tileUrl(l)],
+      tileSize: 256,
+      maxzoom: l.maxZoom,
+      attribution: "Imagery: NASA GIBS",
+    },
+  ])
+)
 
 const mapStyle: maplibregl.StyleSpecification = {
   version: 8,
@@ -29,206 +62,143 @@ const mapStyle: maplibregl.StyleSpecification = {
     satellite: {
       type: "raster",
       tiles: [
-        "cached-sat://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
-        "cached-sat://mt1.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
-        "cached-sat://mt2.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
-        "cached-sat://mt3.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       ],
       tileSize: 256,
-      maxzoom: 20,
-      attribution: "© Google Imagery (Enhanced 2X HD)",
+      maxzoom: 19,
+      attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
     },
     streets: {
       type: "raster",
-      tiles: [
-        "cached-sat://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&scale=2",
-        "cached-sat://mt1.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&scale=2",
-        "cached-sat://mt2.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&scale=2",
-        "cached-sat://mt3.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&scale=2",
-      ],
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
       tileSize: 256,
-      maxzoom: 20,
-      attribution: "© Google Maps (Enhanced 2X HD)",
+      maxzoom: 19,
+      attribution: "© OpenStreetMap contributors",
     },
+    ...nasaSources,
   },
   layers: [
+    { id: "streets", type: "raster", source: "streets", layout: { visibility: "none" } },
     {
       id: "satellite",
       type: "raster",
       source: "satellite",
       paint: {
-        "raster-fade-duration": 0,
-        "raster-resampling": "linear",
-        "raster-saturation": 0.28,
-        "raster-contrast": 0.1,
-      },
-    },
-    {
-      id: "streets",
-      type: "raster",
-      source: "streets",
-      layout: { visibility: "none" },
-      paint: {
-        "raster-fade-duration": 0,
-        "raster-resampling": "linear",
         "raster-saturation": 0.15,
         "raster-contrast": 0.05,
       },
     },
+    ...nasaLayers.map((l) => ({
+      id: `nasa-${l.id}`,
+      type: "raster" as const,
+      source: `nasa-${l.id}`,
+      layout: { visibility: "none" as const },
+      paint: { "raster-opacity": 0.7 },
+    })),
   ],
 }
 
-function distanceMeters(c1?: [number, number], c2?: [number, number]) {
-  if (!c1 || !c2 || !Array.isArray(c1) || !Array.isArray(c2)) return 0
-  const R = 6371e3
-  const p1 = (c1[1] * Math.PI) / 180
-  const p2 = (c2[1] * Math.PI) / 180
-  const dp = ((c2[1] - c1[1]) * Math.PI) / 180
-  const dl = ((c2[0] - c1[0]) * Math.PI) / 180
-  const a = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2)
-  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))
+const coordsKey = (p: FieldPolygon | null) => (p ? JSON.stringify(p.geometry.coordinates) : "")
+
+function showPolygon(draw: TerraDraw, polygon: FieldPolygon | null): boolean {
+  const existing = draw.getSnapshot().filter((f) => f.geometry.type === "Polygon")
+  const current = existing.length
+    ? JSON.stringify(existing[existing.length - 1].geometry.coordinates)
+    : ""
+  if (current === coordsKey(polygon)) return false
+
+  draw.clear()
+  if (polygon) {
+    try {
+      draw.addFeatures([
+        { type: "Feature", properties: { mode: "polygon" }, geometry: polygon.geometry },
+      ] as Parameters<TerraDraw["addFeatures"]>[0])
+    } catch {
+    }
+  }
+  return true
 }
 
-function formatDist(meters: number): string {
-  if (meters < 1000) return `${meters} m`
-  return `${(meters / 1000).toFixed(2)} km`
+function fitTo(map: maplibregl.Map, polygon: FieldPolygon, duration: number) {
+  const ring = polygon.geometry.coordinates[0] as [number, number][]
+  const bounds = new maplibregl.LngLatBounds(ring[0], ring[0])
+  ring.forEach((p) => bounds.extend(p))
+  map.fitBounds(bounds, { padding: 70, maxZoom: 17, duration })
 }
 
 type Props = {
-  initialPolygon?: FieldPolygon | null
-  onChange: (polygon: FieldPolygon | null, hectares: number, address?: string | null) => void
+  polygon: FieldPolygon | null
+  onChange: (polygon: FieldPolygon | null, hectares: number) => void
 }
 
-export default function FieldMap({ initialPolygon, onChange }: Props) {
+export default function FieldMap({ polygon, onChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const drawRef = useRef<TerraDraw | null>(null)
+  const locationMarkerRef = useRef<maplibregl.Marker | null>(null)
   const onChangeRef = useRef(onChange)
+  const polygonRef = useRef(polygon)
 
+  const [ready, setReady] = useState(false)
   const [basemap, setBasemap] = useState<"satellite" | "streets">("satellite")
   const [drawing, setDrawing] = useState(false)
+  const [locating, setLocating] = useState(false)
   const [query, setQuery] = useState("")
   const [message, setMessage] = useState("")
-  const [fieldAddress, setFieldAddress] = useState<string | null>(null)
+  const [fieldAddress, setFieldAddress] = useState<GeocodedAddress | null>(null)
+  const [panelOpen, setPanelOpen] = useState(false)
+  const [active, setActive] = useState<Record<string, boolean>>({})
+  const [opacity, setOpacity] = useState(70)
+
   const [livePoints, setLivePoints] = useState<[number, number][]>([])
   const [redoStack, setRedoStack] = useState<[number, number][]>([])
-  const [liveHectares, setLiveHectares] = useState<number>(0)
-  const [prospectiveHa, setProspectiveHa] = useState<number>(0)
-  const [cursorPos, setCursorPos] = useState<[number, number] | null>(null)
   const [screenCoords, setScreenCoords] = useState<{ x: number; y: number }[]>([])
+  const [cursorPos, setCursorPos] = useState<[number, number] | null>(null)
   const [screenCursor, setScreenCursor] = useState<{ x: number; y: number } | null>(null)
-
-  const [savedCoords, setSavedCoords] = useState<[number, number][]>(() => {
-    if (initialPolygon && initialPolygon.geometry.coordinates[0]?.length >= 3) {
-      return initialPolygon.geometry.coordinates[0].slice(0, -1) as [number, number][]
-    }
-    return []
-  })
+  const [savedCoords, setSavedCoords] = useState<[number, number][]>([])
   const [savedScreenCoords, setSavedScreenCoords] = useState<{ x: number; y: number }[]>([])
-  const [savedHa, setSavedHa] = useState<number>(() => {
-    if (initialPolygon) {
-      return area(initialPolygon as unknown as Parameters<typeof area>[0]) / 10000
-    }
-    return 0
-  })
-
-  const livePointsRef = useRef(livePoints)
-  const redoStackRef = useRef(redoStack)
-  const savedCoordsRef = useRef(savedCoords)
-  const drawingRef = useRef(drawing)
-
-  useEffect(() => {
-    livePointsRef.current = livePoints
-  }, [livePoints])
-
-  useEffect(() => {
-    redoStackRef.current = redoStack
-  }, [redoStack])
-
-  useEffect(() => {
-    savedCoordsRef.current = savedCoords
-  }, [savedCoords])
-
-  useEffect(() => {
-    drawingRef.current = drawing
-  }, [drawing])
+  const [liveHectares, setLiveHectares] = useState(0)
+  const [prospectiveHa, setProspectiveHa] = useState(0)
+  const [savedHa, setSavedHa] = useState(0)
 
   useEffect(() => {
     onChangeRef.current = onChange
-  }, [onChange])
+    polygonRef.current = polygon
+  })
 
-  useEffect(() => {
-    if (savedCoords.length >= 3) {
-      const [cLng, cLat] = computePolygonCentroid(savedCoords)
-      reverseGeocode(cLng, cLat).then((res) => {
-        setFieldAddress(res.formatted)
-        const poly: FieldPolygon = {
-          type: "Feature",
-          geometry: {
-            type: "Polygon",
-            coordinates: [[...savedCoords, savedCoords[0]]],
-          },
-          properties: {},
-        }
-        onChangeRef.current(poly, savedHa, res.formatted)
-      })
-    } else {
-      setFieldAddress(null)
-    }
-  }, [savedCoords, savedHa])
-
-  const projectPoints = useCallback(() => {
+  const projectCoords = useCallback((coords: [number, number][]) => {
     const map = mapRef.current
-    if (!map) return
+    if (!map) return []
+    return coords.map((c) => {
+      const pt = map.project(c)
+      return { x: pt.x, y: pt.y }
+    })
+  }, [])
 
-    if (livePointsRef.current.length > 0) {
-      setScreenCoords(livePointsRef.current.map((p) => map.project(p)))
+  const updateScreenCoords = useCallback(() => {
+    if (livePoints.length > 0) {
+      setScreenCoords(projectCoords(livePoints))
     } else {
       setScreenCoords([])
     }
-
-    if (savedCoordsRef.current.length > 0) {
-      setSavedScreenCoords(savedCoordsRef.current.map((p) => map.project(p)))
+    if (savedCoords.length > 0) {
+      setSavedScreenCoords(projectCoords(savedCoords))
     } else {
       setSavedScreenCoords([])
     }
-
-    if (cursorPos) {
-      setScreenCursor(map.project(cursorPos))
-    }
-  }, [cursorPos])
-
-  useEffect(() => {
-    projectPoints()
-  }, [livePoints, savedCoords, cursorPos, projectPoints])
+  }, [livePoints, savedCoords, projectCoords])
 
   useEffect(() => {
     if (!containerRef.current) return
 
-    prewarmWestBengalTiles()
-
-    const initialCenter: [number, number] =
-      savedCoords.length > 0 ? savedCoords[0] : [78.96, 20.59]
-    const initialZoom = savedCoords.length > 0 ? 15 : 4
-
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: mapStyle,
-      center: initialCenter,
-      zoom: initialZoom,
-      minZoom: 4,
-      maxZoom: 21.5,
-      maxTileCacheSize: 1200,
-      maxTileCacheZoomLevels: 8,
-      refreshExpiredTiles: false,
-      fadeDuration: 0,
-      cancelPendingTileRequestsWhileZooming: false,
+      center: [78.96, 20.59],
+      zoom: 4,
     })
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right")
     mapRef.current = map
-    if (typeof window !== "undefined") {
-      (window as unknown as { _fieldShiftMap?: maplibregl.Map })._fieldShiftMap = map
-    }
 
     map.on("load", () => {
       const draw = new TerraDraw({
@@ -236,10 +206,10 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
         modes: [
           new TerraDrawPolygonMode({
             styles: {
-              fillColor: "#2563EB",
-              fillOpacity: 0.18,
+              fillColor: "#1E3A2F",
+              fillOpacity: 0.25,
               outlineColor: "#2563EB",
-              outlineWidth: 2.5,
+              outlineWidth: 3,
             },
           }),
           new TerraDrawSelectMode({
@@ -252,335 +222,351 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
               },
             },
             styles: {
-              selectedPolygonColor: "#2563EB",
-              selectedPolygonFillOpacity: 0.22,
+              selectedPolygonColor: "#1E3A2F",
+              selectedPolygonFillOpacity: 0.25,
               selectedPolygonOutlineColor: "#2563EB",
-              selectedPolygonOutlineWidth: 2.5,
+              selectedPolygonOutlineWidth: 3,
             },
           }),
         ],
       })
-
       draw.start()
       drawRef.current = draw
 
-      if (savedCoords.length >= 3) {
-        const poly: FieldPolygon = {
-          type: "Feature",
-          geometry: {
-            type: "Polygon",
-            coordinates: [[...savedCoords, savedCoords[0]]],
-          },
-          properties: {},
+      draw.on("finish", (_id, context) => {
+        const polygons = draw.getSnapshot().filter((f) => f.geometry.type === "Polygon")
+        if (polygons.length === 0) return
+
+        if (polygons.length > 1) {
+          draw.removeFeatures(polygons.slice(0, -1).map((f) => f.id as string))
         }
-        draw.addFeatures([poly as unknown as Parameters<typeof draw.addFeatures>[0][number]])
-        draw.setMode("select")
-      }
+
+        const last = polygons[polygons.length - 1] as unknown as FieldPolygon
+        const hectares = area(last as unknown as Parameters<typeof area>[0]) / 10000
+        onChangeRef.current(last, hectares)
+
+        const ring = (last.geometry.coordinates[0] || []) as [number, number][]
+        const uniqueCoords = ring.slice(0, -1)
+        setSavedCoords(uniqueCoords)
+        setSavedHa(hectares)
+        setSavedScreenCoords(projectCoords(uniqueCoords))
+
+        const centroid = computePolygonCentroid(uniqueCoords)
+        reverseGeocode(centroid[0], centroid[1]).then((addr) => {
+          setFieldAddress(addr)
+        })
+
+        if (context.mode === "polygon") {
+          setDrawing(false)
+          draw.setMode("select")
+        }
+      })
 
       draw.on("change", () => {
-        if (drawingRef.current) return
         const polygons = draw.getSnapshot().filter((f) => f.geometry.type === "Polygon")
         if (polygons.length > 0) {
           const last = polygons[polygons.length - 1] as unknown as FieldPolygon
           const hectares = area(last as unknown as Parameters<typeof area>[0]) / 10000
-          setSavedHa(hectares)
-          const coords = last.geometry.coordinates[0].slice(0, -1) as [number, number][]
-          setSavedCoords(coords)
           onChangeRef.current(last, hectares)
+          const ring = (last.geometry.coordinates[0] || []) as [number, number][]
+          const uniqueCoords = ring.slice(0, -1)
+          setSavedCoords(uniqueCoords)
+          setSavedHa(hectares)
+          setSavedScreenCoords(projectCoords(uniqueCoords))
         }
       })
+
+      const saved = polygonRef.current
+      if (saved) {
+        showPolygon(draw, saved)
+        fitTo(map, saved, 0)
+        draw.setMode("select")
+        const ring = (saved.geometry.coordinates[0] || []) as [number, number][]
+        const uniqueCoords = ring.slice(0, -1)
+        const hectares = area(saved as unknown as Parameters<typeof area>[0]) / 10000
+        setSavedCoords(uniqueCoords)
+        setSavedHa(hectares)
+        setSavedScreenCoords(projectCoords(uniqueCoords))
+        const centroid = computePolygonCentroid(uniqueCoords)
+        reverseGeocode(centroid[0], centroid[1]).then((addr) => {
+          setFieldAddress(addr)
+        })
+      }
+
+      setReady(true)
     })
 
-    const handleMapClick = (e: maplibregl.MapMouseEvent) => {
-      if (!drawingRef.current) return
-      uiSoundEngine.playTick(1.0)
-      setRedoStack([])
-      const next: [number, number][] = [...livePointsRef.current, [e.lngLat.lng, e.lngLat.lat]]
-      setLivePoints(next)
-
-      if (next.length >= 3) {
-        const tempPoly: FieldPolygon = {
-          type: "Feature",
-          geometry: {
-            type: "Polygon",
-            coordinates: [[...next, next[0]]],
-          },
-          properties: {},
-        }
-        const tempHa = area(tempPoly as unknown as Parameters<typeof area>[0]) / 10000
-        setLiveHectares(tempHa)
-        onChangeRef.current(tempPoly, tempHa)
-      }
-    }
-
-    const handleMouseMove = (e: maplibregl.MapMouseEvent) => {
-      if (!drawingRef.current) return
-      const cur: [number, number] = [e.lngLat.lng, e.lngLat.lat]
-      setCursorPos(cur)
-      setScreenCursor(e.point)
-
-      const pts = livePointsRef.current
-      if (pts.length >= 2) {
-        const previewPoly: FieldPolygon = {
-          type: "Feature",
-          geometry: {
-            type: "Polygon",
-            coordinates: [[...pts, cur, pts[0]]],
-          },
-          properties: {},
-        }
-        const ha = area(previewPoly as unknown as Parameters<typeof area>[0]) / 10000
-        setProspectiveHa(ha)
-      }
-    }
-
-    const handleMapRepaint = () => {
-      const currentMap = mapRef.current
-      if (!currentMap) return
-      if (livePointsRef.current.length > 0) {
-        setScreenCoords(livePointsRef.current.map((p) => currentMap.project(p)))
-      }
-      if (savedCoordsRef.current.length > 0) {
-        setSavedScreenCoords(savedCoordsRef.current.map((p) => currentMap.project(p)))
-      }
-    }
-
-    map.on("click", handleMapClick)
-    map.on("mousemove", handleMouseMove)
-    map.on("move", handleMapRepaint)
-    map.on("zoom", handleMapRepaint)
-
     return () => {
-      map.off("click", handleMapClick)
-      map.off("mousemove", handleMouseMove)
-      map.off("move", handleMapRepaint)
-      map.off("zoom", handleMapRepaint)
+      setReady(false)
       drawRef.current?.stop()
       drawRef.current = null
+      if (locationMarkerRef.current) {
+        locationMarkerRef.current.remove()
+        locationMarkerRef.current = null
+      }
       map.remove()
       mapRef.current = null
     }
-  }, [])
+  }, [projectCoords])
 
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    const isSat = basemap === "satellite"
-    const updateLayers = () => {
-      if (map.getLayer("satellite")) {
-        map.setLayoutProperty("satellite", "visibility", isSat ? "visible" : "none")
-      }
-      if (map.getLayer("streets")) {
-        map.setLayoutProperty("streets", "visibility", isSat ? "none" : "visible")
-      }
+    map.on("move", updateScreenCoords)
+    map.on("zoom", updateScreenCoords)
+    return () => {
+      map.off("move", updateScreenCoords)
+      map.off("zoom", updateScreenCoords)
     }
-    if (map.getLayer("satellite") || map.getLayer("streets")) {
-      updateLayers()
+  }, [updateScreenCoords])
+
+  useEffect(() => {
+    const map = mapRef.current
+    const draw = drawRef.current
+    if (!ready || !map || !draw) return
+    const changed = showPolygon(draw, polygon)
+    if (changed && polygon) {
+      fitTo(map, polygon, 900)
+      draw.setMode("select")
+      const ring = (polygon.geometry.coordinates[0] || []) as [number, number][]
+      const uniqueCoords = ring.slice(0, -1)
+      const hectares = area(polygon as unknown as Parameters<typeof area>[0]) / 10000
+      setSavedCoords(uniqueCoords)
+      setSavedHa(hectares)
+      setSavedScreenCoords(projectCoords(uniqueCoords))
+      const centroid = computePolygonCentroid(uniqueCoords)
+      reverseGeocode(centroid[0], centroid[1]).then((addr) => {
+        setFieldAddress(addr)
+      })
+    } else if (!polygon) {
+      setSavedCoords([])
+      setSavedScreenCoords([])
+      setSavedHa(0)
+      setFieldAddress(null)
+    }
+  }, [polygon, ready, projectCoords])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+    map.setLayoutProperty("satellite", "visibility", basemap === "satellite" ? "visible" : "none")
+    map.setLayoutProperty("streets", "visibility", basemap === "streets" ? "visible" : "none")
+  }, [basemap, ready])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+    nasaLayers.forEach((l) => {
+      const id = `nasa-${l.id}`
+      if (!map.getLayer(id)) return
+      map.setLayoutProperty(id, "visibility", active[l.id] ? "visible" : "none")
+      map.setPaintProperty(id, "raster-opacity", opacity / 100)
+    })
+  }, [active, opacity, ready])
+
+  const calculateLiveHectares = useCallback((coords: [number, number][]) => {
+    if (coords.length < 3) return 0
+    try {
+      const closed = [...coords, coords[0]]
+      const poly = {
+        type: "Polygon" as const,
+        coordinates: [closed],
+      }
+      return area(poly) / 10000
+    } catch {
+      return 0
+    }
+  }, [])
+
+  const handleMapClick = useCallback(
+    (e: maplibregl.MapMouseEvent) => {
+      if (!drawing) return
+      const coord: [number, number] = [e.lngLat.lng, e.lngLat.lat]
+      uiSoundEngine.playTick()
+
+      setLivePoints((prev) => {
+        const next = [...prev, coord]
+        setScreenCoords(projectCoords(next))
+        setLiveHectares(calculateLiveHectares(next))
+        return next
+      })
+      setRedoStack([])
+    },
+    [drawing, projectCoords, calculateLiveHectares]
+  )
+
+  const handleMouseMove = useCallback(
+    (e: maplibregl.MapMouseEvent) => {
+      if (!drawing) return
+      const c: [number, number] = [e.lngLat.lng, e.lngLat.lat]
+      setCursorPos(c)
+      setScreenCursor({ x: e.point.x, y: e.point.y })
+
+      if (livePoints.length >= 2) {
+        const prospective = [...livePoints, c]
+        setProspectiveHa(calculateLiveHectares(prospective))
+      } else {
+        setProspectiveHa(0)
+      }
+    },
+    [drawing, livePoints, calculateLiveHectares]
+  )
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    if (drawing) {
+      map.on("click", handleMapClick)
+      map.on("mousemove", handleMouseMove)
     } else {
-      map.once("load", updateLayers)
+      map.off("click", handleMapClick)
+      map.off("mousemove", handleMouseMove)
     }
-  }, [basemap])
+
+    return () => {
+      map.off("click", handleMapClick)
+      map.off("mousemove", handleMouseMove)
+    }
+  }, [drawing, handleMapClick, handleMouseMove])
+
+  const startDrawing = () => {
+    uiSoundEngine.playChipClickSfx()
+    if (drawRef.current) {
+      drawRef.current.clear()
+      drawRef.current.setMode("select")
+    }
+    setLivePoints([])
+    setRedoStack([])
+    setScreenCoords([])
+    setSavedCoords([])
+    setSavedScreenCoords([])
+    setLiveHectares(0)
+    setProspectiveHa(0)
+    setCursorPos(null)
+    setScreenCursor(null)
+    setDrawing(true)
+    setMessage("")
+  }
+
+  const resumeDrawing = () => {
+    if (savedCoords.length < 3) return
+    uiSoundEngine.playChipClickSfx()
+    if (drawRef.current) {
+      drawRef.current.clear()
+      drawRef.current.setMode("select")
+    }
+    setLivePoints([...savedCoords])
+    setScreenCoords(projectCoords(savedCoords))
+    setLiveHectares(savedHa)
+    setRedoStack([])
+    setDrawing(true)
+    setMessage("")
+  }
 
   const undoLastPoint = useCallback(() => {
-    if (livePointsRef.current.length === 0) return
-    const last = livePointsRef.current[livePointsRef.current.length - 1]
-    const next = livePointsRef.current.slice(0, -1)
-    setRedoStack((prev) => [...prev, last])
+    if (livePoints.length === 0) return
+    uiSoundEngine.playTick()
+    const last = livePoints[livePoints.length - 1]
+    const next = livePoints.slice(0, -1)
     setLivePoints(next)
-    uiSoundEngine.playTick(0.85)
-
-    if (next.length >= 3) {
-      const tempPoly: FieldPolygon = {
-        type: "Feature",
-        geometry: {
-          type: "Polygon",
-          coordinates: [[...next, next[0]]],
-        },
-        properties: {},
-      }
-      const tempHa = area(tempPoly as unknown as Parameters<typeof area>[0]) / 10000
-      setLiveHectares(tempHa)
-      onChangeRef.current(tempPoly, tempHa)
-    } else {
-      setLiveHectares(0)
-    }
-  }, [])
+    setScreenCoords(projectCoords(next))
+    setLiveHectares(calculateLiveHectares(next))
+    setRedoStack((prev) => [...prev, last])
+  }, [livePoints, projectCoords, calculateLiveHectares])
 
   const redoLastPoint = useCallback(() => {
-    if (redoStackRef.current.length === 0) return
-    const last = redoStackRef.current[redoStackRef.current.length - 1]
-    const nextRedo = redoStackRef.current.slice(0, -1)
-    const next = [...livePointsRef.current, last]
-    setRedoStack(nextRedo)
+    if (redoStack.length === 0) return
+    uiSoundEngine.playTick()
+    const nextCoord = redoStack[redoStack.length - 1]
+    const next = [...livePoints, nextCoord]
     setLivePoints(next)
-    uiSoundEngine.playTick(1.15)
-
-    if (next.length >= 3) {
-      const tempPoly: FieldPolygon = {
-        type: "Feature",
-        geometry: {
-          type: "Polygon",
-          coordinates: [[...next, next[0]]],
-        },
-        properties: {},
-      }
-      const tempHa = area(tempPoly as unknown as Parameters<typeof area>[0]) / 10000
-      setLiveHectares(tempHa)
-      onChangeRef.current(tempPoly, tempHa)
-    }
-  }, [])
+    setScreenCoords(projectCoords(next))
+    setLiveHectares(calculateLiveHectares(next))
+    setRedoStack((prev) => prev.slice(0, -1))
+  }, [livePoints, redoStack, projectCoords, calculateLiveHectares])
 
   const completeDrawing = useCallback(() => {
-    if (livePointsRef.current.length < 3) return
-    const pts = [...livePointsRef.current]
-    const finalPoly: FieldPolygon = {
+    if (livePoints.length < 3) return
+    uiSoundEngine.playCelebration()
+
+    const ring = [...livePoints, livePoints[0]]
+    const polyFeature: FieldPolygon = {
       type: "Feature",
+      properties: { mode: "polygon" },
       geometry: {
         type: "Polygon",
-        coordinates: [[...pts, pts[0]]],
+        coordinates: [ring],
       },
-      properties: {},
     }
-    const ha = area(finalPoly as unknown as Parameters<typeof area>[0]) / 10000
-    onChangeRef.current(finalPoly, ha)
 
-    const [cLng, cLat] = computePolygonCentroid(pts)
-    reverseGeocode(cLng, cLat).then((res) => {
-      setFieldAddress(res.formatted)
-      onChangeRef.current(finalPoly, ha, res.formatted)
-    })
-
-    uiSoundEngine.playTick(1.3)
-    setSavedCoords(pts)
-    setSavedHa(ha)
-
-    if (mapRef.current) {
-      mapRef.current.doubleClickZoom.enable()
-      setSavedScreenCoords(pts.map((p) => mapRef.current!.project(p)))
-    }
+    const calculatedHectares = area(polyFeature as unknown as Parameters<typeof area>[0]) / 10000
 
     if (drawRef.current) {
       drawRef.current.clear()
-      drawRef.current.addFeatures([finalPoly as unknown as Parameters<typeof drawRef.current.addFeatures>[0][number]])
-      drawRef.current.setMode("select")
+      try {
+        drawRef.current.addFeatures([
+          polyFeature as Parameters<TerraDraw["addFeatures"]>[0][0],
+        ])
+        drawRef.current.setMode("select")
+      } catch {
+      }
     }
 
+    setSavedCoords(livePoints)
+    setSavedScreenCoords(projectCoords(livePoints))
+    setSavedHa(calculatedHectares)
     setDrawing(false)
     setLivePoints([])
-    setScreenCoords([])
     setRedoStack([])
-    setMessage("")
-  }, [])
+    setCursorPos(null)
+    setScreenCursor(null)
+
+    onChangeRef.current(polyFeature, calculatedHectares)
+
+    const centroid = computePolygonCentroid(livePoints)
+    reverseGeocode(centroid[0], centroid[1]).then((addr) => {
+      setFieldAddress(addr)
+    })
+  }, [livePoints, projectCoords])
+
+  const cancelDrawing = useCallback(() => {
+    uiSoundEngine.playChipClickSfx()
+    setDrawing(false)
+    setLivePoints([])
+    setRedoStack([])
+    setScreenCoords([])
+    setCursorPos(null)
+    setScreenCursor(null)
+    if (savedCoords.length >= 3 && polygonRef.current && drawRef.current) {
+      showPolygon(drawRef.current, polygonRef.current)
+      drawRef.current.setMode("select")
+    }
+  }, [savedCoords])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!drawingRef.current) return
-
-      const target = e.target as HTMLElement | null
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
-      ) {
-        return
-      }
-
-      const isCtrlOrMeta = e.ctrlKey || e.metaKey
-
-      if (isCtrlOrMeta && !e.shiftKey && (e.key === "z" || e.key === "Z")) {
+      if (!drawing) return
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
         e.preventDefault()
         undoLastPoint()
-        return
-      }
-
-      if (
-        (isCtrlOrMeta && (e.key === "y" || e.key === "Y")) ||
-        (isCtrlOrMeta && e.shiftKey && (e.key === "z" || e.key === "Z"))
-      ) {
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
         e.preventDefault()
         redoLastPoint()
-        return
-      }
-
-      if (e.key === "Backspace" || e.key === "Delete") {
+      } else if (e.key === "Enter") {
         e.preventDefault()
-        undoLastPoint()
-        return
-      }
-
-      if (e.key === "Enter") {
+        if (livePoints.length >= 3) completeDrawing()
+      } else if (e.key === "Escape") {
         e.preventDefault()
-        if (livePointsRef.current.length >= 3) {
-          completeDrawing()
-        }
-        return
-      }
-
-      if (e.key === "Escape") {
-        e.preventDefault()
-        if (mapRef.current) {
-          mapRef.current.doubleClickZoom.enable()
-        }
-        setDrawing(false)
-        setLivePoints([])
-        setRedoStack([])
-        return
+        cancelDrawing()
       }
     }
-
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [undoLastPoint, redoLastPoint, completeDrawing])
-
-  const resumeDrawing = useCallback(() => {
-    if (!drawRef.current) return
-    uiSoundEngine.playChipClickSfx()
-    if (mapRef.current) {
-      mapRef.current.doubleClickZoom.disable()
-    }
-    const existing = savedCoordsRef.current.length > 0 ? savedCoordsRef.current : livePointsRef.current
-    drawRef.current.clear()
-    drawRef.current.setMode("select")
-    setLivePoints([...existing])
-    setRedoStack([])
-    setSavedCoords([])
-    setSavedScreenCoords([])
-    setSavedHa(0)
-    setDrawing(true)
-    setMessage("Click anywhere on map to add more corners. Click 'Done' or press Enter to finish.")
-  }, [])
-
-  useEffect(() => {
-    const handleResume = () => {
-      resumeDrawing()
-    }
-    window.addEventListener("fieldshift-resume-drawing", handleResume)
-    return () => window.removeEventListener("fieldshift-resume-drawing", handleResume)
-  }, [resumeDrawing])
-
-  const startDrawing = () => {
-    if (!drawRef.current) return
-    uiSoundEngine.playTick(1.1)
-    if (mapRef.current) {
-      mapRef.current.doubleClickZoom.disable()
-    }
-    drawRef.current.clear()
-    drawRef.current.setMode("select")
-    setLivePoints([])
-    setRedoStack([])
-    setScreenCoords([])
-    setSavedCoords([])
-    setSavedScreenCoords([])
-    setDrawing(true)
-    setMessage("Click each corner of your field boundary. Add as many corners as needed, then click 'Done'.")
-  }
+  }, [drawing, livePoints, undoLastPoint, redoLastPoint, completeDrawing, cancelDrawing])
 
   const clearField = () => {
-    uiSoundEngine.playTick(0.8)
-    if (mapRef.current) {
-      mapRef.current.doubleClickZoom.enable()
-    }
+    uiSoundEngine.playChipClickSfx()
     drawRef.current?.clear()
     drawRef.current?.setMode("select")
     setLivePoints([])
@@ -594,7 +580,62 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
     setSavedHa(0)
     setMessage("")
     setFieldAddress(null)
-    onChange(null, 0, null)
+    onChange(null, 0)
+  }
+
+  const handleLocateMe = () => {
+    if (locating) return
+    if (!navigator.geolocation) {
+      setMessage("Geolocation is not supported by your browser.")
+      return
+    }
+
+    setLocating(true)
+    setMessage("")
+    uiSoundEngine.playChipClickSfx()
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { longitude, latitude } = position.coords
+        const map = mapRef.current
+        if (map) {
+          map.flyTo({
+            center: [longitude, latitude],
+            zoom: 16,
+            duration: 2200,
+          })
+
+          if (locationMarkerRef.current) {
+            locationMarkerRef.current.remove()
+          }
+          locationMarkerRef.current = new maplibregl.Marker({ color: "#2563EB" })
+            .setLngLat([longitude, latitude])
+            .addTo(map)
+
+          reverseGeocode(longitude, latitude).then((addr) => {
+            setFieldAddress(addr)
+          })
+        }
+        setTimeout(() => {
+          setLocating(false)
+        }, 700)
+      },
+      (error) => {
+        setTimeout(() => {
+          setLocating(false)
+        }, 700)
+        if (error.code === error.PERMISSION_DENIED) {
+          setMessage("Location permission denied. Please allow location access in your browser.")
+        } else {
+          setMessage("Unable to retrieve your location.")
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    )
   }
 
   const search = async (e: { preventDefault: () => void }) => {
@@ -620,6 +661,8 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
     }
   }
 
+  const activeCount = Object.values(active).filter(Boolean).length
+
   const activeSegmentDistance =
     drawing && cursorPos && livePoints.length > 0
       ? distanceMeters(livePoints[livePoints.length - 1], cursorPos)
@@ -634,17 +677,44 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
       : null
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-2xl border-2 border-[#CFC6B2] bg-[#E8E2D4] shadow-[0_8px_24px_rgba(35,31,24,0.10)]">
+    <div className="relative h-full w-full overflow-hidden rounded-2xl border border-forest/10">
       <div
         ref={containerRef}
         className={`h-full w-full transition-all duration-300 ${drawing ? "cursor-crosshair" : ""}`}
       />
 
+      <div
+        className={`pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center transition-all duration-700 ease-in-out ${
+          locating
+            ? "bg-stone-900/40 backdrop-blur-md opacity-100 pointer-events-auto"
+            : "bg-stone-900/0 backdrop-blur-none opacity-0"
+        }`}
+      >
+        <div
+          className={`flex items-center gap-3.5 rounded-2xl border border-white/15 bg-black/80 px-5 py-3.5 shadow-2xl transition-all duration-700 ${
+            locating ? "scale-100 opacity-100" : "scale-95 opacity-0"
+          }`}
+        >
+          <ThinkingOrb
+            state="searching"
+            size={32}
+            speed={1.1}
+            theme="dark"
+            className="shrink-0"
+            aria-label="Agent searching for location"
+          />
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold tracking-wide text-white">Agent searching…</span>
+            <span className="text-xs text-white/60">Acquiring GPS coordinates</span>
+          </div>
+        </div>
+      </div>
+
       <svg className="absolute inset-0 pointer-events-none w-full h-full z-15 overflow-visible">
         <defs>
           <linearGradient id="glassFieldFill" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.08" />
-            <stop offset="100%" stopColor="#60A5FA" stopOpacity="0.03" />
+            <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#60A5FA" stopOpacity="0.04" />
           </linearGradient>
         </defs>
 
@@ -663,8 +733,6 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
               fill="none"
               stroke="rgba(255, 255, 255, 0.7)"
               strokeWidth="1"
-              strokeDasharray="3 6"
-              className="animate-field-dash-reverse"
             />
           </>
         )}
@@ -749,20 +817,6 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
 
         {!drawing && savedScreenCoords.length >= 3 && savedCoords.length >= 3 && (
           <>
-            <polygon
-              points={savedScreenCoords.map((p) => `${p.x},${p.y}`).join(" ")}
-              fill="rgba(59, 130, 246, 0.08)"
-              stroke="#3B82F6"
-              strokeWidth="2.2"
-              strokeDasharray="6 4"
-              className="animate-field-dash"
-            />
-            <polygon
-              points={savedScreenCoords.map((p) => `${p.x},${p.y}`).join(" ")}
-              fill="none"
-              stroke="rgba(255, 255, 255, 0.65)"
-              strokeWidth="1"
-            />
             {savedScreenCoords.map((pt, i) => {
               if (i >= savedCoords.length) return null
               const nextPt = savedScreenCoords[(i + 1) % savedScreenCoords.length]
@@ -801,17 +855,36 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search a village, town or address"
-          className="h-10 flex-1 rounded-xl border border-[rgba(230,224,210,0.22)] bg-[rgba(34,32,28,0.84)] backdrop-blur-md px-3.5 text-xs text-[#F4F0E6] placeholder-[#A8A396] shadow-sm outline-none focus:border-[#7E9167] focus:ring-1 focus:ring-[#7E9167]"
+          className="h-11 flex-1 rounded-xl border border-forest/10 bg-white/90 px-4 text-sm shadow backdrop-blur outline-none focus:ring-2 focus:ring-sage"
         />
+        <Button type="submit" size="icon" className="h-11 w-11 rounded-xl" aria-label="Search">
+          <Search className="h-5 w-5" />
+        </Button>
         <Button
-          type="submit"
+          type="button"
+          variant="secondary"
           size="icon"
-          className="h-10 w-10 rounded-xl bg-[#7E9167] text-[#161C14] hover:bg-[#8FA882] shadow-sm cursor-pointer"
-          aria-label="Search"
+          onClick={handleLocateMe}
+          disabled={locating}
+          className="h-11 w-11 rounded-xl border border-forest/10 bg-white/90 shadow backdrop-blur"
+          aria-label="Locate my position with GPS"
         >
-          <SearchIcon className="h-4 w-4" />
+          <LocateFixed className={`h-5 w-5 ${locating ? "animate-pulse text-blue-600" : ""}`} />
         </Button>
       </form>
+
+      {fieldAddress && (
+        <div className="absolute left-3 top-16 z-20 flex items-center gap-1.5 rounded-xl border border-forest/10 bg-white/90 px-3 py-1.5 text-xs font-medium text-forest shadow backdrop-blur">
+          <MapPin className="h-3.5 w-3.5 text-sage" />
+          <span>Location: {fieldAddress.formatted}</span>
+        </div>
+      )}
+
+      {message && (
+        <p className="absolute left-3 top-24 z-20 rounded-lg bg-white/95 px-3 py-1 text-xs text-forest shadow">
+          {message}
+        </p>
+      )}
 
       <AnimatePresence>
         {drawing && (
@@ -820,7 +893,7 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.16 }}
-            className="absolute top-16 left-3 right-3 z-20 mx-auto max-w-lg rounded-2xl bg-[rgba(34,32,28,0.88)] backdrop-blur-xl p-3.5 text-[#F4F0E6] shadow-2xl border border-[rgba(230,224,210,0.22)]"
+            className="absolute top-16 left-3 right-3 z-20 mx-auto max-w-lg rounded-2xl border border-white/15 bg-black/80 p-3.5 text-white shadow-2xl backdrop-blur-xl"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -838,36 +911,36 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
                   </span>
                 )}
                 {livePoints.length >= 2 && prospectiveHa > 0 && (
-                  <span className="text-[10px] text-[#A8A396]">
+                  <span className="text-[10px] text-white/60">
                     (Est: {prospectiveHa.toFixed(2)} ha)
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/10 text-[10px] text-[#A8A396]">
+            <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2 text-[10px] text-white/60">
               <div className="flex flex-wrap items-center gap-2">
-                <span><kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px] text-[#F4F0E6]">Ctrl+Z</kbd> Undo</span>
-                <span><kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px] text-[#F4F0E6]">Ctrl+Y</kbd> Redo</span>
-                <span><kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px] text-[#F4F0E6]">Enter</kbd> Finish</span>
-                <span><kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px] text-[#F4F0E6]">⌫</kbd> Delete</span>
+                <span><kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px] text-white">Ctrl+Z</kbd> Undo</span>
+                <span><kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px] text-white">Ctrl+Y</kbd> Redo</span>
+                <span><kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px] text-white">Enter</kbd> Finish</span>
+                <span><kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px] text-white">Esc</kbd> Cancel</span>
               </div>
 
-              <div className="flex items-center gap-1.5 ml-auto">
+              <div className="ml-auto flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={undoLastPoint}
                   disabled={livePoints.length === 0}
-                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-[#F4F0E6] hover:bg-white/10 disabled:opacity-40 transition-colors cursor-pointer"
+                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-white hover:bg-white/10 disabled:opacity-40 transition-colors"
                 >
-                  <RotateCcwIcon className="h-3 w-3" />
+                  <RotateCcw className="h-3 w-3" />
                   Undo
                 </button>
                 <button
                   type="button"
                   onClick={redoLastPoint}
                   disabled={redoStack.length === 0}
-                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-[#F4F0E6] hover:bg-white/10 disabled:opacity-40 transition-colors cursor-pointer"
+                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-white hover:bg-white/10 disabled:opacity-40 transition-colors"
                 >
                   Redo
                 </button>
@@ -875,9 +948,9 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
                   type="button"
                   onClick={completeDrawing}
                   disabled={livePoints.length < 3}
-                  className="flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 px-3.5 py-1 text-[11px] font-bold text-white shadow-md disabled:opacity-40 transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1 text-[11px] font-bold text-white shadow hover:bg-blue-500 disabled:opacity-40 transition-all"
                 >
-                  <CheckIcon className="h-3.5 w-3.5" />
+                  <Check className="h-3.5 w-3.5" />
                   Done ({livePoints.length} {livePoints.length === 1 ? "corner" : "corners"})
                 </button>
               </div>
@@ -886,94 +959,137 @@ export default function FieldMap({ initialPolygon, onChange }: Props) {
         )}
       </AnimatePresence>
 
-      {!drawing && savedCoords.length >= 3 && (
-        <div className="absolute top-16 left-3 z-20 flex flex-col gap-1 rounded-xl bg-[rgba(34,32,28,0.88)] backdrop-blur-xl px-3.5 py-2 text-xs font-semibold text-[#F4F0E6] shadow-md border border-[rgba(230,224,210,0.22)]">
-          <div className="flex items-center gap-2">
-            <MapPinIcon className="h-4 w-4 text-[#7E9867]" />
-            <span>Active boundary • {savedHa.toFixed(2)} ha ({savedCoords.length} corners)</span>
-            <button
-              type="button"
-              onClick={resumeDrawing}
-              className="ml-2 px-3 py-1 rounded-lg bg-[#5E7A46] text-[#F7F4EC] hover:bg-[#6E8F53] text-[11px] font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-            >
-              <PlusIcon className="h-3.5 w-3.5" />
-              Add corners
-            </button>
+      {panelOpen && (
+        <div className="absolute left-3 top-16 z-20 max-h-[calc(100%-11.5rem)] w-72 max-w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur">
+          <p className="text-sm font-semibold">NASA satellite layers</p>
+          <p className="mb-3 text-xs text-forest/60">
+            Coarse regional context from NASA GIBS. These are not measurements of your exact field.
+          </p>
+
+          <div className="space-y-1">
+            {nasaLayers.map((l) => (
+              <label
+                key={l.id}
+                className="flex cursor-pointer items-start gap-3 rounded-xl p-2 hover:bg-forest/5"
+              >
+                <input
+                  type="checkbox"
+                  checked={!!active[l.id]}
+                  onChange={(e) => setActive((a) => ({ ...a, [l.id]: e.target.checked }))}
+                  className="mt-0.5 h-5 w-5 accent-forest"
+                />
+                <span className="text-sm">
+                  <span className="font-medium">{l.label}</span>
+                  <br />
+                  <span className="text-xs text-forest/60">
+                    {l.description} Latest around {dateFor(l.lagDays)}.
+                  </span>
+                </span>
+              </label>
+            ))}
           </div>
-          {fieldAddress && (
-            <div className="flex items-center gap-1.5 text-[11px] text-[#C9C0AC] font-medium pl-6">
-              <span className="truncate max-w-[320px] sm:max-w-[460px]">{fieldAddress}</span>
+
+          <div className="mt-3 space-y-1">
+            <div className="flex justify-between text-xs">
+              <span>Layer opacity</span>
+              <span>{opacity}%</span>
             </div>
-          )}
+            <input
+              type="range"
+              min={20}
+              max={100}
+              step={10}
+              value={opacity}
+              onChange={(e) => setOpacity(Number(e.target.value))}
+              aria-label="Layer opacity"
+              className="w-full accent-forest"
+            />
+          </div>
         </div>
       )}
 
-      {message && (
-        <p className="absolute left-3 top-16 z-10 rounded-lg bg-[rgba(34,32,28,0.88)] backdrop-blur-xl px-3 py-1 text-xs text-[#F4F0E6] shadow-md border border-[rgba(230,224,210,0.22)]">
-          {message}
-        </p>
-      )}
-
-      <div className="absolute bottom-3 left-3 z-20 flex flex-wrap items-center gap-2">
-        <button
+      <div className="absolute bottom-3 left-3 right-14 z-20 flex flex-wrap items-center gap-2">
+        <Button
           type="button"
           onClick={startDrawing}
-          className={`h-10 px-4 flex items-center justify-center rounded-xl text-xs transition-all shadow-md cursor-pointer ${
+          className={`h-11 rounded-xl shadow transition-all ${
             drawing
-              ? "bg-blue-600 text-white font-bold border border-blue-400 shadow-lg"
-              : "bg-[#7E9167] text-[#141A12] font-semibold border border-[#96A87E] hover:bg-[#8FA882]"
+              ? "bg-blue-600 text-white font-bold hover:bg-blue-700"
+              : "bg-forest text-ivory hover:bg-forest/90"
           }`}
         >
-          <PencilIcon className="mr-1.5 h-3.5 w-3.5" />
-          {drawing ? "Marking field…" : savedCoords.length >= 3 ? "Draw new field" : "Draw field"}
-        </button>
+          <Pencil className="mr-2 h-4 w-4" />
+          {drawing ? "Marking field…" : savedCoords.length >= 3 ? "Redraw field" : "Draw field"}
+        </Button>
 
         {drawing && (
-          <button
+          <Button
             type="button"
             onClick={completeDrawing}
             disabled={livePoints.length < 3}
-            className="h-10 px-4 flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg disabled:opacity-40 transition-all cursor-pointer border border-blue-400"
+            className="h-11 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow disabled:opacity-40"
           >
-            <CheckIcon className="h-4 w-4" />
+            <Check className="mr-2 h-4 w-4" />
             Done ({livePoints.length} {livePoints.length === 1 ? "corner" : "corners"})
-          </button>
+          </Button>
         )}
 
         {!drawing && savedCoords.length >= 3 && (
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={resumeDrawing}
-            className="h-10 px-3.5 flex items-center justify-center rounded-xl text-xs font-bold bg-[#5E7A46] text-[#F7F4EC] hover:bg-[#6E8F53] border border-[#4B6338] shadow-md transition-all cursor-pointer"
+            className="h-11 rounded-xl"
           >
-            <PlusIcon className="mr-1.5 h-3.5 w-3.5" />
+            <Plus className="mr-2 h-4 w-4" />
             Add corners
-          </button>
+          </Button>
         )}
 
-        <button
+        <Button
           type="button"
-          onClick={clearField}
-          className="h-10 px-3.5 flex items-center justify-center rounded-xl text-xs font-medium bg-[rgba(34,32,28,0.84)] backdrop-blur-md border border-[rgba(230,224,210,0.22)] text-[#F2EDE2] hover:bg-[#A66843]/40 hover:border-[#A66843]/60 shadow-sm transition-all cursor-pointer"
+          variant="secondary"
+          onClick={handleLocateMe}
+          disabled={locating}
+          className="h-11 rounded-xl"
         >
-          <TrashIcon className="mr-1.5 h-3.5 w-3.5" />
-          Clear
-        </button>
-        <button
+          <LocateFixed className={`mr-2 h-4 w-4 ${locating ? "animate-pulse text-blue-600" : ""}`} />
+          {locating ? "Locating…" : "My location"}
+        </Button>
+
+        <Button
           type="button"
+          variant="secondary"
+          onClick={clearField}
+          className="h-11 rounded-xl"
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Clear
+        </Button>
+
+        <Button
+          type="button"
+          variant="secondary"
           onClick={() => {
             uiSoundEngine.playChipClickSfx()
-            setBasemap((prev) => (prev === "satellite" ? "streets" : "satellite"))
+            setBasemap(basemap === "satellite" ? "streets" : "satellite")
           }}
-          className={`h-10 px-3.5 flex items-center justify-center rounded-xl text-xs font-medium backdrop-blur-md border shadow-sm transition-all cursor-pointer ${
-            basemap === "streets"
-              ? "bg-[#7E9167] text-[#141A12] font-bold border-[#96A87E]"
-              : "bg-[rgba(34,32,28,0.84)] border-[rgba(230,224,210,0.22)] text-[#F2EDE2] hover:bg-white/10"
-          }`}
+          className="h-11 rounded-xl"
         >
-          <LayersIcon className="mr-1.5 h-3.5 w-3.5" />
+          <Layers className="mr-2 h-4 w-4" />
           {basemap === "satellite" ? "Street map" : "Satellite"}
-        </button>
+        </Button>
+
+        <Button
+          type="button"
+          variant={panelOpen ? "default" : "secondary"}
+          onClick={() => setPanelOpen((v) => !v)}
+          className="h-11 rounded-xl"
+          aria-expanded={panelOpen}
+        >
+          <Satellite className="mr-2 h-4 w-4" />
+          NASA layers{activeCount > 0 ? ` (${activeCount})` : ""}
+        </Button>
       </div>
     </div>
   )

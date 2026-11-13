@@ -13,8 +13,8 @@ import { pageContainer, pageItem } from "@/lib/motion"
 
 export default function MissionControl() {
   const navigate = useNavigate()
-  const { events, status, restart, isDemo } = useInvestigationStream()
-  const { profile, hectares } = useFarmStore()
+   const { profile, hectares, investigationId } = useFarmStore()
+  const { events, status, restart, isDemo } = useInvestigationStream(investigationId ?? "demo")
 
   const completed = agents.filter((a) => {
     for (let i = events.length - 1; i >= 0; i--) {

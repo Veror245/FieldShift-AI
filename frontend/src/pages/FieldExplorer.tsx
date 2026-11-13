@@ -1,133 +1,173 @@
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { motion } from "framer-motion"
+import { MapPin, Sparkles } from "lucide-react"
 import FieldMap from "@/maps/FieldMap"
 import FarmForm from "@/components/farm/FarmForm"
+import GeoJsonUpload from "@/components/farm/GeoJsonUpload"
+import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { PageHeader } from "@/components/common/PageHeader"
-import { AnimatedNumber } from "@/components/ui/AnimatedNumber"
-import { PlusIcon } from "@/components/common/Icons"
-import { uiSoundEngine } from "@/utils/uiSoundEngine"
+import { demoFarm } from "@/mocks/demoFarm"
+import { buildInvestigationRequest } from "@/lib/investigationRequest"
+import { startInvestigation } from "@/services/api"
 import { useFarmStore } from "@/store/useFarmStore"
+import { computePolygonCentroid, reverseGeocode } from "@/utils/reverseGeocode"
 import type { FarmProfile } from "@/types/farm"
-import { pageContainer, pageItem } from "@/lib/motion"
 
 export default function FieldExplorer() {
   const navigate = useNavigate()
-  const { polygon, hectares, locationAddress, setField, setProfile } = useFarmStore()
+
+  const { polygon, hectares, profile, setField, setProfile, ensureFarmId, setInvestigationId } =
+    useFarmStore()
+  const [submitting, setSubmitting] = useState(false)
 
   const corners = polygon ? polygon.geometry.coordinates[0].length - 1 : 0
 
-  const handleSubmit = (values: FarmProfile) => {
+  const coords = polygon?.geometry?.coordinates?.[0] as [number, number][] | undefined
+  const [lng, lat] = coords && coords.length >= 3 ? computePolygonCentroid(coords) : [null, null]
+
+  const { data: address, isLoading: loadingAddress } = useQuery({
+    queryKey: ["reverseGeocode", lng, lat],
+    queryFn: () => (lng !== null && lat !== null ? reverseGeocode(lng, lat) : null),
+    enabled: Boolean(polygon && lng !== null && lat !== null),
+    staleTime: 1000 * 60 * 30,
+  })
+
+  const loadSample = () => {
+    setField(demoFarm.polygon, demoFarm.hectares)
+    setProfile(demoFarm.profile)
+    toast.success("Sample farm loaded. This is example data, not a real farm.")
+  }
+
+  const handleSubmit = async (values: FarmProfile) => {
     if (!polygon) {
       toast.error("Please draw your field on the map first.")
       return
     }
-    setProfile(values)
-    toast.success("Farm details saved. Starting the investigation.")
-    navigate("/investigation")
+    setSubmitting(true)
+    try {
+      const request = buildInvestigationRequest({ farmId: ensureFarmId(), polygon, profile: values })
+      if (import.meta.env.DEV) console.info("Investigation request:", request)
+      const { investigationId } = await startInvestigation(request)
+      setProfile(values)
+      setInvestigationId(investigationId)
+      toast.success("Farm details saved. Starting the investigation.")
+      navigate("/investigation")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not start the investigation.")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
-    <motion.div
-      variants={pageContainer}
-      initial="hidden"
-      animate="visible"
-      className="space-y-3"
-    >
-      <motion.div variants={pageItem} className="flex items-center justify-between">
-        <PageHeader
-          title="Field Explorer"
-          description="Find your land, outline your field boundary, then tell us about your farm."
-        />
-        {polygon && (
-          <div className="hidden sm:flex flex-col items-end gap-1">
-            <div className="flex items-center gap-2.5 rounded-full px-3.5 py-1.5 bg-[#DAD3C2] border border-[#C2B9A5] text-xs font-semibold text-[#2B3326] shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-[#5E7A46] animate-pulse" />
-              <span>
-                Boundary active • <AnimatedNumber value={hectares} decimals={2} suffix=" ha" /> ({corners} corners)
-              </span>
-            </div>
-            {locationAddress && (
-              <span className="text-[11px] font-medium text-[#5E594F] truncate max-w-[340px]">
-                📍 {locationAddress}
-              </span>
-            )}
-          </div>
-        )}
-      </motion.div>
+    <>
+      <PageHeader
+        title="Field Explorer"
+        description="Find your land, outline your field, then tell us about your farm."
+      />
 
-      <div className="grid gap-3.5 lg:grid-cols-[1.35fr_380px] lg:h-[calc(100vh-140px)] items-stretch">
-        <motion.div variants={pageItem} className="h-[480px] lg:h-full w-full rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(35,31,24,0.10)] border-2 border-[#CFC6B2] bg-[#E8E2D4]">
-          <FieldMap initialPolygon={polygon} onChange={setField} />
-        </motion.div>
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        <div className="h-[65vh] min-h-[420px] lg:sticky lg:top-6">
+          <FieldMap polygon={polygon} onChange={setField} />
+        </div>
 
-        <motion.div
-          variants={pageItem}
-          className="space-y-3 lg:overflow-y-auto lg:pr-1.5 h-full max-h-[calc(100vh-140px)]"
-        >
-          <Card className="rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-semibold text-sm text-[#1E241B]">Field boundary</h2>
-              {polygon && (
-                <span className="rounded-full bg-[#E2DBC9] border border-[#C9C0AC] px-2.5 py-0.5 text-[11px] font-bold text-[#3B4A32]">
-                  <AnimatedNumber value={hectares} decimals={2} suffix=" ha" />
-                </span>
-              )}
+        <div className="space-y-6">
+          <Card className="rounded-2xl p-5">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="font-semibold">Field boundary</h2>
+              <Button variant="secondary" size="sm" onClick={loadSample} className="h-9 rounded-lg">
+                <Sparkles className="mr-1.5 h-4 w-4" />
+                Load sample farm
+              </Button>
             </div>
+
             {polygon ? (
-              <div className="space-y-2.5">
-                <dl className="space-y-1.5 text-xs">
-                  <div className="flex justify-between">
-                    <dt className="text-[#666257]">Calculated area</dt>
-                    <dd className="font-bold text-[#1E241B]">
-                      <AnimatedNumber value={hectares} decimals={2} suffix=" ha" /> (
-                      <AnimatedNumber value={hectares * 2.471} decimals={2} suffix=" acres" />)
-                    </dd>
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <dt className="text-forest/70">Area</dt>
+                  <dd className="font-semibold">{hectares.toFixed(2)} ha</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-forest/70">Corners</dt>
+                  <dd className="font-semibold">{corners}</dd>
+                </div>
+                <div className="border-t border-forest/10 pt-2.5">
+                  <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-forest/70">
+                    <MapPin className="h-3.5 w-3.5 text-sage" />
+                    <span>Location details</span>
                   </div>
-                  <div className="flex justify-between">
-                    <dt className="text-[#666257]">Boundary corners</dt>
-                    <dd className="font-bold text-[#1E241B]">
-                      <AnimatedNumber value={corners} decimals={0} suffix=" vertices" />
+                  {loadingAddress ? (
+                    <dd className="text-xs text-forest/60 italic">Resolving address…</dd>
+                  ) : address ? (
+                    <dd className="space-y-1 rounded-xl bg-forest/5 p-2.5 text-xs">
+                      {address.village && (
+                        <div className="flex justify-between">
+                          <span className="text-forest/70">Village / Town</span>
+                          <span className="font-medium text-forest">{address.village}</span>
+                        </div>
+                      )}
+                      {address.city && address.city !== address.village && (
+                        <div className="flex justify-between">
+                          <span className="text-forest/70">City</span>
+                          <span className="font-medium text-forest">{address.city}</span>
+                        </div>
+                      )}
+                      {address.district && (
+                        <div className="flex justify-between">
+                          <span className="text-forest/70">District</span>
+                          <span className="font-medium text-forest">{address.district}</span>
+                        </div>
+                      )}
+                      {address.state && (
+                        <div className="flex justify-between">
+                          <span className="text-forest/70">State</span>
+                          <span className="font-medium text-forest">{address.state}</span>
+                        </div>
+                      )}
+                      {address.country && (
+                        <div className="flex justify-between">
+                          <span className="text-forest/70">Country</span>
+                          <span className="font-medium text-forest">{address.country}</span>
+                        </div>
+                      )}
+                      {!address.village && !address.city && !address.district && !address.state && !address.country && (
+                        <div className="font-medium text-forest/80">{address.formatted}</div>
+                      )}
                     </dd>
-                  </div>
-                  {locationAddress && (
-                    <div className="flex justify-between items-start gap-2 pt-1 border-t border-[#D9D1BF]">
-                      <dt className="text-[#666257] shrink-0">Field location</dt>
-                      <dd className="font-semibold text-right text-[#1E241B] text-[11px] leading-snug">
-                        {locationAddress}
-                      </dd>
-                    </div>
+                  ) : (
+                    <dd className="text-xs text-forest/60">Location unlisted</dd>
                   )}
-                  <p className="pt-0.5 text-[11px] text-[#787367] leading-tight">
-                    Drag corner points on map to adjust. Area updates live in real-time.
-                  </p>
-                </dl>
-                <button
-                  type="button"
-                  onClick={() => {
-                    uiSoundEngine.playChipClickSfx()
-                    window.dispatchEvent(new CustomEvent("fieldshift-resume-drawing"))
-                  }}
-                  className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-[#5E7A46] hover:bg-[#6E8F53] text-[#F7F4EC] py-2 px-3 text-xs font-bold shadow-sm transition-all cursor-pointer"
-                >
-                  <PlusIcon className="h-3.5 w-3.5" />
-                  Add more corners to boundary
-                </button>
-              </div>
+                </div>
+                <p className="pt-1 text-xs text-forest/60">
+                  Drag the corners to adjust. The area is calculated from the drawn outline.
+                </p>
+              </dl>
             ) : (
-              <p className="text-xs text-[#5C5A52] leading-relaxed">
-                Click <strong className="text-[#1E241B]">Draw field</strong>, then click each corner of your land on the satellite imagery.
+              <p className="text-sm text-forest/70">
+                No field yet. Search for your location, press <strong>Draw field</strong>, or upload
+                a boundary file below.
               </p>
             )}
+
+            <div className="mt-4">
+              <GeoJsonUpload onLoaded={(f) => setField(f.polygon, f.hectares)} />
+            </div>
           </Card>
 
-          <Card className="rounded-2xl p-4">
-            <h2 className="mb-3 font-semibold text-sm text-[#1E241B]">About your farm</h2>
-            <FarmForm onSubmit={handleSubmit} />
+          <Card className="rounded-2xl p-5">
+            <h2 className="mb-4 font-semibold">About your farm</h2>
+            <FarmForm
+              key={profile ? JSON.stringify(profile) : "empty"}
+              initial={profile}
+              onSubmit={handleSubmit}
+              submitting={submitting}
+            />
           </Card>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+    </>
   )
 }
