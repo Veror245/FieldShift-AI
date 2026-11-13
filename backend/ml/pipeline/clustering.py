@@ -11,18 +11,20 @@ from sklearn.preprocessing import StandardScaler
 MODEL_DIR = Path(__file__).resolve().parents[1] / "models"
 
 
-# Climate features used by K-Means
+
 FEATURE_COLUMNS = [
-    "total_rainfall",
     "avg_temperature",
+    "total_rainfall",
     "rainfall_std",
-    "max_daily_rainfall",
-    "rainy_days",
-    "avg_max_temperature"
+    "avg_solar_radiation",
+    "avg_humidity",
+    "avg_wind_speed",
+    "rainy_day_ratio"
 ]
 
 
-def train_climate_clusters(seasonal_features, n_clusters=4):
+
+def train_climate_clusters(seasonal_features, n_clusters=3):
 
     # Select the required climate features
     X = seasonal_features[FEATURE_COLUMNS].copy()
