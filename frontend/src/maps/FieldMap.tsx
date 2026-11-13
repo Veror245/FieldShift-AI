@@ -216,7 +216,7 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
           new TerraDrawPolygonMode({
             styles: {
               fillColor: "#2563EB",
-              fillOpacity: 0.15,
+              fillOpacity: 0.22,
               outlineColor: "#2563EB",
               outlineWidth: 2,
             },
@@ -232,7 +232,7 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
             },
             styles: {
               selectedPolygonColor: "#2563EB",
-              selectedPolygonFillOpacity: 0.15,
+              selectedPolygonFillOpacity: 0.25,
               // committed field: blue transparent interior + strong outline
               selectedPolygonOutlineColor: "#2563EB",
               selectedPolygonOutlineWidth: 4,
@@ -736,8 +736,8 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
       <svg className="absolute inset-0 pointer-events-none w-full h-full z-15 overflow-visible">
         <defs>
           <linearGradient id="glassFieldFill" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.12" />
-            <stop offset="100%" stopColor="#60A5FA" stopOpacity="0.04" />
+            <stop offset="0%" stopColor="#2563EB" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.12" />
           </linearGradient>
         </defs>
 
