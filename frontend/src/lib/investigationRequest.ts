@@ -2,13 +2,13 @@ import { z } from "zod"
 import type { FarmProfile } from "@/types/farm"
 import type { FieldPolygon } from "@/types/geojson"
 
-// This matches the JSON structure the backend team asked for.
+const unit = z.number().min(0).max(1)
+
+// This matches the JSON structure the backend team sent.
 export const investigationRequestSchema = z.object({
-  farm_id: z.string().uuid(),
-  field: z.object({
-    lat: z.number().min(-90).max(90),
-    lon: z.number().min(-180).max(180),
-  }),
+  farm_id: z.string().min(1),
+  lat: z.number().min(-90).max(90),
+  lon: z.number().min(-180).max(180),
   region: z.string().min(1),
   current_rotation: z
     .array(
@@ -28,6 +28,16 @@ export const investigationRequestSchema = z.object({
     lab_name: z.string().optional(),
   }),
   objectives: z.string().min(1),
+  priorities: z.object({
+    water_efficiency: unit,
+    soil_improvement: unit,
+    economic_potential: unit,
+    climate_compatibility: unit,
+    nitrogen_cycling: unit,
+    erosion_protection: unit,
+    crop_diversity: unit,
+    feasibility: unit,
+  }),
   constraints: z.object({
     forbidden_crops: z.array(z.string()),
     required_crops: z.array(z.string()),
@@ -36,6 +46,7 @@ export const investigationRequestSchema = z.object({
 })
 
 export type InvestigationRequest = z.infer<typeof investigationRequestSchema>
+export type BackendPriorities = InvestigationRequest["priorities"]
 
 // Check these words with the backend team and edit them here if they differ.
 const textureId: Record<FarmProfile["soilTexture"], string> = {
@@ -47,14 +58,15 @@ const textureId: Record<FarmProfile["soilTexture"], string> = {
 }
 
 const waterText: Record<FarmProfile["water"], string> = {
-  reliable: "Irrigation is reliable all season",
-  unreliable: "Water availability has become unreliable",
-  rainfed: "The farm is rain-fed only",
+  reliable: "Irrigation is reliable all season.",
+  unreliable: "Water availability has become unreliable.",
+  rainfed: "The farm is rain-fed only.",
 }
 
 const cropId = (c: string) => c.trim().toLowerCase().replace(/\s+/g, "_")
 const num = (v: string) => (v.trim() === "" ? null : Number(v))
 const round = (n: number) => Number(n.toFixed(5))
+const toUnit = (n: number) => Math.round(Math.max(0, Math.min(100, n))) / 100
 
 export function polygonCentroid(polygon: FieldPolygon): { lat: number; lon: number } {
   const ring = polygon.geometry.coordinates[0]
@@ -80,10 +92,26 @@ export function polygonCentroid(polygon: FieldPolygon): { lat: number; lon: numb
   return { lon: cx / (6 * a), lat: cy / (6 * a) }
 }
 
-function composeObjectives(p: FarmProfile): string {
-  const own = p.objectives.trim()
-  const lead = own ? (/[.!?]$/.test(own) ? own : `${own}.`) : `${waterText[p.water]}.`
-  return `${lead} Priorities (0 to 100): save water ${p.waterPriority}, keep costs low ${p.costPriority}, improve soil health ${p.soilPriority}.`
+// TEMPORARY MAPPING. The form has 3 sliders but the backend takes 8 priorities.
+// - "Save water"           -> water_efficiency
+// - "Improve soil health"  -> soil_improvement, nitrogen_cycling, erosion_protection
+// - "Keep costs low"       -> economic_potential, feasibility
+// - climate_compatibility and crop_diversity have no slider yet, so they are sent as 0.5 (neutral).
+// Replace this with 8 real sliders once the team agrees on the priorities UI.
+export function prioritiesFromProfile(p: FarmProfile): BackendPriorities {
+  const water = toUnit(p.waterPriority)
+  const soil = toUnit(p.soilPriority)
+  const cost = toUnit(p.costPriority)
+  return {
+    water_efficiency: water,
+    soil_improvement: soil,
+    nitrogen_cycling: soil,
+    erosion_protection: soil,
+    economic_potential: cost,
+    feasibility: cost,
+    climate_compatibility: 0.5,
+    crop_diversity: 0.5,
+  }
 }
 
 export function buildInvestigationRequest(args: {
@@ -100,7 +128,8 @@ export function buildInvestigationRequest(args: {
 
   const request = {
     farm_id: farmId,
-    field: { lat: round(lat), lon: round(lon) },
+    lat: round(lat),
+    lon: round(lon),
     region: profile.region,
     current_rotation: profile.rotation.map((r) => ({
       crop_id: cropId(r.crop),
@@ -115,7 +144,8 @@ export function buildInvestigationRequest(args: {
       ...(sampled ? { sampled_at: sampled } : {}),
       ...(lab ? { lab_name: lab } : {}),
     },
-    objectives: composeObjectives(profile),
+    objectives: profile.objectives.trim() || waterText[profile.water],
+    priorities: prioritiesFromProfile(profile),
     constraints: {
       forbidden_crops: profile.forbiddenCrops.map(cropId),
       required_crops: profile.requiredCrops.map(cropId),

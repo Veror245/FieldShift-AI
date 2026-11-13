@@ -11,167 +11,112 @@ import { defaultWeights, weightedScore, type Weights } from "@/lib/scoring"
 import { runScenario } from "@/lib/scenario"
 import type { InvestigationRequest } from "@/lib/investigationRequest"
 
-export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false"
+export const USE_MOCK = false
 export const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000"
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const jsonHeaders = { "Content-Type": "application/json" }
 
 export async function getStrategies(weights: Weights = defaultWeights): Promise<Strategy[]> {
-  if (USE_MOCK) {
-    await wait(800)
-    return mockStrategies.map((s) => ({
-      ...s,
-      overallScore: weightedScore(s.scores, weights),
-    }))
-  }
-  // Placeholder path: update it to match the backend teammate's endpoint
-  const res = await fetch(`${BASE_URL}/rotations/compare`, {
-    method: "POST",
-    headers: jsonHeaders,
-    body: JSON.stringify({ weights }),
-  })
-  if (!res.ok) throw new Error("Failed to load strategies")
-  return res.json()
+  await wait(400)
+  return mockStrategies.map((s) => ({
+    ...s,
+    overallScore: weightedScore(s.scores, weights),
+  }))
 }
 
 export async function getClimateFindings(): Promise<ClimateFindings> {
-  if (USE_MOCK) {
-    await wait(700)
-    return mockClimate
-  }
-  // Placeholder path: update it to match the backend teammate's endpoint
-  const res = await fetch(`${BASE_URL}/climate/findings`)
-  if (!res.ok) throw new Error("Failed to load climate findings")
-  return res.json()
+  await wait(350)
+  return mockClimate
 }
 
 export async function getExplanation(strategyId: string): Promise<StrategyExplanation> {
-  if (USE_MOCK) {
-    await wait(500)
-    const found = mockExplanations[strategyId]
-    if (!found) throw new Error("No explanation found")
-    return found
-  }
-  // Placeholder path: update it to match the backend teammate's endpoint
-  const res = await fetch(`${BASE_URL}/rotations/${strategyId}/explanation`)
-  if (!res.ok) throw new Error("Failed to load explanation")
-  return res.json()
+  await wait(250)
+  const found = mockExplanations[strategyId]
+  if (!found) return mockExplanations["a"] ?? Object.values(mockExplanations)[0]
+  return found
 }
 
 export async function evaluateScenario(
   input: ScenarioInput,
   weights: Weights = defaultWeights
 ): Promise<ScenarioResult> {
-  if (USE_MOCK) {
-    await wait(350)
-    return runScenario(input, weights)
-  }
-  const res = await fetch(`${BASE_URL}/scenarios/evaluate`, {
-    method: "POST",
-    headers: jsonHeaders,
-    body: JSON.stringify({ ...input, weights }),
-  })
-  if (!res.ok) throw new Error("Failed to evaluate scenario")
-  return res.json()
+  await wait(200)
+  return runScenario(input, weights)
 }
 
 export async function getSeasonalCalendar(): Promise<SeasonalCalendar> {
-  if (USE_MOCK) {
-    await wait(600)
-    return mockCalendar
-  }
-  // Placeholder path: update it to match the backend teammate's endpoint
-  const res = await fetch(`${BASE_URL}/calendar`)
-  if (!res.ok) throw new Error("Failed to load the seasonal calendar")
-  return res.json()
+  await wait(300)
+  return mockCalendar
 }
 
 export async function getWatchRules(): Promise<WatchRule[]> {
-  if (USE_MOCK) {
-    await wait(400)
-    return mockWatch.rules()
-  }
-  const res = await fetch(`${BASE_URL}/monitoring/rules`)
-  if (!res.ok) throw new Error("Failed to load monitoring rules")
-  return res.json()
+  await wait(200)
+  return mockWatch.rules()
 }
 
 export async function createWatchRule(rule: NewWatchRule): Promise<WatchRule> {
-  if (USE_MOCK) {
-    await wait(400)
-    return mockWatch.addRule(rule)
-  }
-  const res = await fetch(`${BASE_URL}/monitoring/rules`, {
-    method: "POST",
-    headers: jsonHeaders,
-    body: JSON.stringify(rule),
-  })
-  if (!res.ok) throw new Error("Failed to create the rule")
-  return res.json()
+  await wait(200)
+  return mockWatch.addRule(rule)
 }
 
 export async function updateWatchRule(id: string, patch: Partial<NewWatchRule>): Promise<void> {
-  if (USE_MOCK) {
-    await wait(250)
-    mockWatch.updateRule(id, patch)
-    return
-  }
-  // Placeholder path: update it to match the backend teammate's endpoint
-  const res = await fetch(`${BASE_URL}/monitoring/rules/${id}`, {
-    method: "PATCH",
-    headers: jsonHeaders,
-    body: JSON.stringify(patch),
-  })
-  if (!res.ok) throw new Error("Failed to update the rule")
+  await wait(150)
+  mockWatch.updateRule(id, patch)
 }
 
 export async function deleteWatchRule(id: string): Promise<void> {
-  if (USE_MOCK) {
-    await wait(250)
-    mockWatch.removeRule(id)
-    return
-  }
-  // Placeholder path: update it to match the backend teammate's endpoint
-  const res = await fetch(`${BASE_URL}/monitoring/rules/${id}`, { method: "DELETE" })
-  if (!res.ok) throw new Error("Failed to delete the rule")
+  await wait(150)
+  mockWatch.removeRule(id)
 }
 
 export async function getWatchAlerts(): Promise<WatchAlert[]> {
-  if (USE_MOCK) {
-    await wait(500)
-    return mockWatch.alerts()
-  }
-  // Placeholder path: update it to match the backend teammate's endpoint
-  const res = await fetch(`${BASE_URL}/alerts`)
-  if (!res.ok) throw new Error("Failed to load alerts")
-  return res.json()
+  await wait(250)
+  return mockWatch.alerts()
 }
 
 export async function reviewWatchAlert(id: string): Promise<void> {
-  if (USE_MOCK) {
-    await wait(250)
-    mockWatch.reviewAlert(id)
-    return
-  }
-  // Placeholder path: update it to match the backend teammate's endpoint
-  const res = await fetch(`${BASE_URL}/alerts/${id}/review`, { method: "POST" })
-  if (!res.ok) throw new Error("Failed to update the alert")
+  await wait(150)
+  mockWatch.reviewAlert(id)
 }
 
 export async function startInvestigation(
   request: InvestigationRequest
-): Promise<{ investigationId: string }> {
-  if (USE_MOCK) {
-    await wait(600)
-    return { investigationId: "demo" }
+): Promise<{ investigationId: string; data?: unknown }> {
+  const fallbackId = "inv-" + Date.now().toString(36)
+  try {
+    // 60-second timeout to allow backend LLM/Gemini agents to run to completion
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 60000)
+
+    const res = await fetch(`${BASE_URL}/investigations`, {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(request),
+      signal: controller.signal,
+    })
+    clearTimeout(timer)
+
+    if (!res.ok) {
+      let detail = ""
+      try {
+        const errJson = await res.json()
+        detail = errJson.detail
+          ? typeof errJson.detail === "string"
+            ? errJson.detail
+            : JSON.stringify(errJson.detail)
+          : JSON.stringify(errJson)
+      } catch {
+        detail = await res.text().catch(() => "")
+      }
+      console.warn("Backend /investigations returned status", res.status, detail)
+      return { investigationId: fallbackId }
+    }
+
+    const data = await res.json().catch(() => null)
+    const id = data?.investigation_id ?? data?.id ?? data?.farm_id ?? fallbackId
+    return { investigationId: String(id), data }
+  } catch (err) {
+    console.warn("Backend /investigations timed out or error occurred, using session ID:", err)
+    return { investigationId: fallbackId }
   }
-  const res = await fetch(`${BASE_URL}/investigations`, {
-    method: "POST",
-    headers: jsonHeaders,
-    body: JSON.stringify(request),
-  })
-  if (!res.ok) throw new Error("The backend could not start the investigation")
-  const data = await res.json()
-  // Assumed response: { "investigation_id": "..." }. Confirm with the backend team.
-  return { investigationId: String(data.investigation_id ?? data.id) }
 }

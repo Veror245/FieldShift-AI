@@ -25,7 +25,7 @@ import type { FarmProfile } from "@/types/farm"
 export default function FieldExplorer() {
   const navigate = useNavigate()
 
-  const { polygon, hectares, profile, setField, setProfile, ensureFarmId, setInvestigationId } =
+  const { polygon, hectares, profile, setField, setProfile, ensureFarmId, setInvestigationId, weights } =
     useFarmStore()
   const [submitting, setSubmitting] = useState(false)
   const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number; address?: GeocodedAddress } | null>(null)
@@ -118,7 +118,7 @@ export default function FieldExplorer() {
     }
     setSubmitting(true)
     try {
-      const request = buildInvestigationRequest({ farmId: ensureFarmId(), polygon, profile: values })
+      const request = buildInvestigationRequest({ farmId: ensureFarmId(), polygon, profile: values, weights })
       if (import.meta.env.DEV) console.info("Investigation request:", request)
       const { investigationId } = await startInvestigation(request)
       setProfile(values)
