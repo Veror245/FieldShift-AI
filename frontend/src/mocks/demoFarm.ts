@@ -10,11 +10,11 @@ const polygon: FieldPolygon = {
     type: "Polygon",
     coordinates: [
       [
-        [88.45, 22.7],
-        [88.4524, 22.7004],
-        [88.4526, 22.7028],
-        [88.4503, 22.7024],
-        [88.45, 22.7],
+        [75.17, 30.82],
+        [75.1726, 30.8203],
+        [75.1728, 30.8229],
+        [75.1703, 30.8226],
+        [75.17, 30.82],
       ],
     ],
   },
@@ -22,14 +22,27 @@ const polygon: FieldPolygon = {
 
 const profile: FarmProfile = {
   farmName: "Sample farm",
-  rotation: ["Rice", "Wheat"],
-  soilPh: "6.4",
+  region: "punjab_in",
+  rotation: [
+    { crop: "Rice", season: "kharif" },
+    { crop: "Wheat", season: "rabi" },
+  ],
+  rotationYear: String(new Date().getFullYear() - 1),
+  soilPh: "7.8",
+  organicCarbon: "0.45",
   soilTexture: "loamy",
-  organicMatter: "",
+  nitrogenPpm: "180",
+  sampledAt: "2024-03-15",
+  labName: "Sample lab",
   water: "unreliable",
   waterPriority: 70,
   costPriority: 40,
   soilPriority: 70,
+  objectives:
+    "Water availability has become unreliable and I want healthier soil without taking big economic risks.",
+  forbiddenCrops: [],
+  requiredCrops: [],
+  maxWater: "medium",
 }
 
 export const demoFarm = {

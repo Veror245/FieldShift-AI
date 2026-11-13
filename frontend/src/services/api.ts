@@ -9,6 +9,7 @@ import { mockCalendar } from "@/mocks/calendar"
 import { mockWatch } from "@/mocks/watch"
 import { defaultWeights, weightedScore, type Weights } from "@/lib/scoring"
 import { runScenario } from "@/lib/scenario"
+import type { InvestigationRequest } from "@/lib/investigationRequest"
 
 export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false"
 export const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000"
@@ -155,4 +156,22 @@ export async function reviewWatchAlert(id: string): Promise<void> {
   // Placeholder path: update it to match the backend teammate's endpoint
   const res = await fetch(`${BASE_URL}/alerts/${id}/review`, { method: "POST" })
   if (!res.ok) throw new Error("Failed to update the alert")
+}
+
+export async function startInvestigation(
+  request: InvestigationRequest
+): Promise<{ investigationId: string }> {
+  if (USE_MOCK) {
+    await wait(600)
+    return { investigationId: "demo" }
+  }
+  const res = await fetch(`${BASE_URL}/investigations`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(request),
+  })
+  if (!res.ok) throw new Error("The backend could not start the investigation")
+  const data = await res.json()
+  // Assumed response: { "investigation_id": "..." }. Confirm with the backend team.
+  return { investigationId: String(data.investigation_id ?? data.id) }
 }

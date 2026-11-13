@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { Sparkles } from "lucide-react"
@@ -8,12 +9,16 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { PageHeader } from "@/components/common/PageHeader"
 import { demoFarm } from "@/mocks/demoFarm"
+import { buildInvestigationRequest } from "@/lib/investigationRequest"
+import { startInvestigation } from "@/services/api"
 import { useFarmStore } from "@/store/useFarmStore"
 import type { FarmProfile } from "@/types/farm"
 
 export default function FieldExplorer() {
   const navigate = useNavigate()
-  const { polygon, hectares, profile, setField, setProfile } = useFarmStore()
+  const { polygon, hectares, profile, setField, setProfile, ensureFarmId, setInvestigationId } =
+    useFarmStore()
+  const [submitting, setSubmitting] = useState(false)
 
   const corners = polygon ? polygon.geometry.coordinates[0].length - 1 : 0
 
@@ -23,14 +28,25 @@ export default function FieldExplorer() {
     toast.success("Sample farm loaded. This is example data, not a real farm.")
   }
 
-  const handleSubmit = (values: FarmProfile) => {
+  const handleSubmit = async (values: FarmProfile) => {
     if (!polygon) {
       toast.error("Please draw your field on the map first.")
       return
     }
-    setProfile(values)
-    toast.success("Farm details saved. Starting the investigation.")
-    navigate("/investigation")
+    setSubmitting(true)
+    try {
+      const request = buildInvestigationRequest({ farmId: ensureFarmId(), polygon, profile: values })
+      if (import.meta.env.DEV) console.info("Investigation request:", request)
+      const { investigationId } = await startInvestigation(request)
+      setProfile(values)
+      setInvestigationId(investigationId)
+      toast.success("Farm details saved. Starting the investigation.")
+      navigate("/investigation")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not start the investigation.")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -87,6 +103,7 @@ export default function FieldExplorer() {
               key={profile ? JSON.stringify(profile) : "empty"}
               initial={profile}
               onSubmit={handleSubmit}
+              submitting={submitting}
             />
           </Card>
         </div>

@@ -1,4 +1,4 @@
-export type GlossaryKey = "ndvi" | "soilMoisture" | "rainfallAnomaly" | "organicMatter"
+export type GlossaryKey = "ndvi" | "soilMoisture" | "rainfallAnomaly" | "organicMatter" |  "organicCarbon"
 
 export interface GlossaryEntry {
   label: string
@@ -17,6 +17,10 @@ export const glossary: Record<GlossaryKey, GlossaryEntry> = {
   rainfallAnomaly: {
     label: "Rainfall Anomaly",
     text: "Significant deviations in seasonal precipitation compared to the historical 10-year local average.",
+  },
+   organicCarbon: {
+    label: "Organic carbon",
+    text: "The carbon held in decomposed plant and animal material in the soil, shown as a percentage on soil test reports. More organic carbon usually means better soil structure, nutrients and water holding.",
   },
   organicMatter: {
     label: "Soil Organic Matter",

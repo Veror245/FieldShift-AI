@@ -120,9 +120,13 @@ export default function FarmOverview() {
                 <p className="text-lg font-bold">{profile.farmName}</p>
                 <p className="text-forest/70">{hectares.toFixed(2)} ha · {waterLabel[profile.water]}</p>
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {profile.rotation.map((c, i) => (
-                    <span key={`${c}-${i}`} className="rounded-full bg-forest px-2.5 py-1 text-xs text-ivory">
-                      {i + 1}. {c}
+                  
+                                    {profile.rotation.map((c, i) => (
+                    <span
+                      key={`${c.crop}-${i}`}
+                      className="rounded-full bg-forest px-2.5 py-1 text-xs text-ivory"
+                    >
+                      {i + 1}. {c.crop}
                     </span>
                   ))}
                 </div>

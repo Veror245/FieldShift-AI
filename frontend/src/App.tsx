@@ -1,17 +1,31 @@
+import { lazy, Suspense, type ReactNode } from "react"
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom"
 import { Toaster } from "sonner"
 import AppShell from "@/components/layout/AppShell"
 import ErrorBoundary from "@/components/common/ErrorBoundary"
-import FarmOverview from "@/pages/FarmOverview"
-import FieldExplorer from "@/pages/FieldExplorer"
-import MissionControl from "@/pages/MissionControl"
-import ClimateFindings from "@/pages/ClimateFindings"
-import RotationStudio from "@/pages/RotationStudio"
-import ScenarioLab from "@/pages/ScenarioLab"
-import SeasonalCalendar from "@/pages/SeasonalCalendar"
-import FieldWatch from "@/pages/FieldWatch"
-import ReportsPage from "@/pages/Reports"
-import NotFound from "@/pages/NotFound"
+import { Skeleton } from "@/components/ui/skeleton"
+
+const FarmOverview = lazy(() => import("@/pages/FarmOverview"))
+const FieldExplorer = lazy(() => import("@/pages/FieldExplorer"))
+const MissionControl = lazy(() => import("@/pages/MissionControl"))
+const ClimateFindings = lazy(() => import("@/pages/ClimateFindings"))
+const RotationStudio = lazy(() => import("@/pages/RotationStudio"))
+const ScenarioLab = lazy(() => import("@/pages/ScenarioLab"))
+const SeasonalCalendar = lazy(() => import("@/pages/SeasonalCalendar"))
+const FieldWatch = lazy(() => import("@/pages/FieldWatch"))
+const ReportsPage = lazy(() => import("@/pages/Reports"))
+const NotFound = lazy(() => import("@/pages/NotFound"))
+
+function PageLoading() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-10 w-64 rounded-xl" />
+      <Skeleton className="h-64 w-full rounded-2xl" />
+    </div>
+  )
+}
+
+const page = (node: ReactNode) => <Suspense fallback={<PageLoading />}>{node}</Suspense>
 
 function AppRoutes() {
   const location = useLocation()
@@ -19,16 +33,16 @@ function AppRoutes() {
     <ErrorBoundary key={location.pathname}>
       <Routes>
         <Route element={<AppShell />}>
-          <Route index element={<FarmOverview />} />
-          <Route path="field" element={<FieldExplorer />} />
-          <Route path="investigation" element={<MissionControl />} />
-          <Route path="findings" element={<ClimateFindings />} />
-          <Route path="strategies" element={<RotationStudio />} />
-          <Route path="scenarios" element={<ScenarioLab />} />
-          <Route path="calendar" element={<SeasonalCalendar />} />
-          <Route path="watch" element={<FieldWatch />} />
-          <Route path="reports" element={<ReportsPage />} />
-          <Route path="*" element={<NotFound />} />
+          <Route index element={page(<FarmOverview />)} />
+          <Route path="field" element={page(<FieldExplorer />)} />
+          <Route path="investigation" element={page(<MissionControl />)} />
+          <Route path="findings" element={page(<ClimateFindings />)} />
+          <Route path="strategies" element={page(<RotationStudio />)} />
+          <Route path="scenarios" element={page(<ScenarioLab />)} />
+          <Route path="calendar" element={page(<SeasonalCalendar />)} />
+          <Route path="watch" element={page(<FieldWatch />)} />
+          <Route path="reports" element={page(<ReportsPage />)} />
+          <Route path="*" element={page(<NotFound />)} />
         </Route>
       </Routes>
     </ErrorBoundary>

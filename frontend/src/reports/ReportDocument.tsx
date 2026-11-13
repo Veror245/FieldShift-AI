@@ -101,11 +101,11 @@ export default function ReportDocument({
           <dl>
             <Row label="Farm name" value={profile.farmName} />
             <Row label="Field area" value={hectares > 0 ? `${hectares.toFixed(2)} ha (${corners} corners)` : "Not drawn"} />
-            <Row label="Current rotation" value={profile.rotation.join(" → ")} />
+            <Row label="Current rotation" value={profile.rotation.map((r) => r.crop).join(" → ")} />
             <Row label="Soil pH" value={profile.soilPh === "" ? "Unknown (not provided)" : profile.soilPh} />
             <Row
-              label="Organic matter"
-              value={profile.organicMatter === "" ? "Unknown (not provided)" : `${profile.organicMatter}%`}
+              label="Organic carbon"
+              value={profile.organicCarbon === "" ? "Unknown (not provided)" : `${profile.organicCarbon}%`}
             />
             <Row label="Soil texture" value={textureLabel[profile.soilTexture]} />
             <Row label="Water availability" value={waterLabel[profile.water]} />

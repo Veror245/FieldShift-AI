@@ -4,12 +4,24 @@ import type { FieldPolygon } from "@/types/geojson"
 import type { FarmProfile } from "@/types/farm"
 import { defaultWeights, type Weights } from "@/lib/scoring"
 
+const newId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0
+        return (c === "x" ? r : (r & 0x3) | 0x8).toString(16)
+      })
+
 type FarmState = {
+  farmId: string | null
+  investigationId: string | null
   polygon: FieldPolygon | null
   hectares: number
   profile: FarmProfile | null
   selectedStrategyId: string | null
   weights: Weights
+  ensureFarmId: () => string
+  setInvestigationId: (id: string | null) => void
   setField: (polygon: FieldPolygon | null, hectares: number) => void
   setProfile: (profile: FarmProfile) => void
   selectStrategy: (id: string | null) => void
@@ -19,18 +31,30 @@ type FarmState = {
 
 export const useFarmStore = create<FarmState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
+      farmId: null,
+      investigationId: null,
       polygon: null,
       hectares: 0,
       profile: null,
       selectedStrategyId: null,
       weights: defaultWeights,
+      ensureFarmId: () => {
+        const existing = get().farmId
+        if (existing) return existing
+        const id = newId()
+        set({ farmId: id })
+        return id
+      },
+      setInvestigationId: (id) => set({ investigationId: id }),
       setField: (polygon, hectares) => set({ polygon, hectares }),
       setProfile: (profile) => set({ profile }),
       selectStrategy: (id) => set({ selectedStrategyId: id }),
       setWeights: (weights) => set({ weights }),
       resetFarm: () =>
         set({
+          farmId: null,
+          investigationId: null,
           polygon: null,
           hectares: 0,
           profile: null,
@@ -38,6 +62,6 @@ export const useFarmStore = create<FarmState>()(
           weights: defaultWeights,
         }),
     }),
-    { name: "fieldshift-farm" }
+    { name: "fieldshift-farm-v2" }
   )
 )
