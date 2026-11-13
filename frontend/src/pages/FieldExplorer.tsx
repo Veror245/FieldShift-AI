@@ -1,11 +1,6 @@
-<<<<<<< HEAD
-import { useState } from "react"
-=======
-import { useEffect, useState } from "react"
->>>>>>> 998e669c77a416c1deeb7fae08d762f7395844ea
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { MapPin, Sparkles } from "lucide-react"
+import { Sparkles } from "lucide-react"
 import FieldMap from "@/maps/FieldMap"
 import FarmForm from "@/components/farm/FarmForm"
 import GeoJsonUpload from "@/components/farm/GeoJsonUpload"
@@ -16,40 +11,18 @@ import { demoFarm } from "@/mocks/demoFarm"
 import { buildInvestigationRequest } from "@/lib/investigationRequest"
 import { startInvestigation } from "@/services/api"
 import { useFarmStore } from "@/store/useFarmStore"
-import { computePolygonCentroid, reverseGeocode, type GeocodedAddress } from "@/utils/reverseGeocode"
 import type { FarmProfile } from "@/types/farm"
 
 export default function FieldExplorer() {
   const navigate = useNavigate()
-<<<<<<< HEAD
+
   const { polygon, hectares, profile, setField, setProfile, ensureFarmId, setInvestigationId } =
     useFarmStore()
   const [submitting, setSubmitting] = useState(false)
-=======
+
   const { polygon, hectares, profile, setField, setProfile } = useFarmStore()
-  const [address, setAddress] = useState<GeocodedAddress | null>(null)
-  const [loadingAddress, setLoadingAddress] = useState(false)
->>>>>>> 998e669c77a416c1deeb7fae08d762f7395844ea
 
   const corners = polygon ? polygon.geometry.coordinates[0].length - 1 : 0
-
-  useEffect(() => {
-    if (!polygon || !polygon.geometry || !polygon.geometry.coordinates[0]?.length) {
-      setAddress(null)
-      return
-    }
-    const coords = polygon.geometry.coordinates[0] as [number, number][]
-    const [lng, lat] = computePolygonCentroid(coords)
-    setLoadingAddress(true)
-    reverseGeocode(lng, lat)
-      .then((res) => {
-        setAddress(res)
-        setLoadingAddress(false)
-      })
-      .catch(() => {
-        setLoadingAddress(false)
-      })
-  }, [polygon])
 
   const loadSample = () => {
     setField(demoFarm.polygon, demoFarm.hectares)
@@ -109,53 +82,6 @@ export default function FieldExplorer() {
                 <div className="flex justify-between">
                   <dt className="text-forest/70">Corners</dt>
                   <dd className="font-semibold">{corners}</dd>
-                </div>
-                <div className="border-t border-forest/10 pt-2.5">
-                  <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-forest/70">
-                    <MapPin className="h-3.5 w-3.5 text-sage" />
-                    <span>Location details</span>
-                  </div>
-                  {loadingAddress ? (
-                    <dd className="text-xs text-forest/60 italic">Resolving address…</dd>
-                  ) : address ? (
-                    <dd className="space-y-1 rounded-xl bg-forest/5 p-2.5 text-xs">
-                      {address.village && (
-                        <div className="flex justify-between">
-                          <span className="text-forest/70">Village / Town</span>
-                          <span className="font-medium text-forest">{address.village}</span>
-                        </div>
-                      )}
-                      {address.city && address.city !== address.village && (
-                        <div className="flex justify-between">
-                          <span className="text-forest/70">City</span>
-                          <span className="font-medium text-forest">{address.city}</span>
-                        </div>
-                      )}
-                      {address.district && (
-                        <div className="flex justify-between">
-                          <span className="text-forest/70">District</span>
-                          <span className="font-medium text-forest">{address.district}</span>
-                        </div>
-                      )}
-                      {address.state && (
-                        <div className="flex justify-between">
-                          <span className="text-forest/70">State</span>
-                          <span className="font-medium text-forest">{address.state}</span>
-                        </div>
-                      )}
-                      {address.country && (
-                        <div className="flex justify-between">
-                          <span className="text-forest/70">Country</span>
-                          <span className="font-medium text-forest">{address.country}</span>
-                        </div>
-                      )}
-                      {!address.village && !address.city && !address.district && !address.state && !address.country && (
-                        <div className="font-medium text-forest/80">{address.formatted}</div>
-                      )}
-                    </dd>
-                  ) : (
-                    <dd className="text-xs text-forest/60">Location unlisted</dd>
-                  )}
                 </div>
                 <p className="pt-1 text-xs text-forest/60">
                   Drag the corners to adjust. The area is calculated from the drawn outline.
