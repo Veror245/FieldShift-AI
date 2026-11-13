@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { MapPin, Sparkles } from "lucide-react"
 import FieldMap from "@/maps/FieldMap"
@@ -12,7 +13,7 @@ import { demoFarm } from "@/mocks/demoFarm"
 import { buildInvestigationRequest } from "@/lib/investigationRequest"
 import { startInvestigation } from "@/services/api"
 import { useFarmStore } from "@/store/useFarmStore"
-import { computePolygonCentroid, reverseGeocode, type GeocodedAddress } from "@/utils/reverseGeocode"
+import { computePolygonCentroid, reverseGeocode } from "@/utils/reverseGeocode"
 import type { FarmProfile } from "@/types/farm"
 
 export default function FieldExplorer() {
@@ -21,28 +22,18 @@ export default function FieldExplorer() {
   const { polygon, hectares, profile, setField, setProfile, ensureFarmId, setInvestigationId } =
     useFarmStore()
   const [submitting, setSubmitting] = useState(false)
-  const [address, setAddress] = useState<GeocodedAddress | null>(null)
-  const [loadingAddress, setLoadingAddress] = useState(false)
 
   const corners = polygon ? polygon.geometry.coordinates[0].length - 1 : 0
 
-  useEffect(() => {
-    if (!polygon || !polygon.geometry || !polygon.geometry.coordinates[0]?.length) {
-      setAddress(null)
-      return
-    }
-    const coords = polygon.geometry.coordinates[0] as [number, number][]
-    const [lng, lat] = computePolygonCentroid(coords)
-    setLoadingAddress(true)
-    reverseGeocode(lng, lat)
-      .then((res) => {
-        setAddress(res)
-        setLoadingAddress(false)
-      })
-      .catch(() => {
-        setLoadingAddress(false)
-      })
-  }, [polygon])
+  const coords = polygon?.geometry?.coordinates?.[0] as [number, number][] | undefined
+  const [lng, lat] = coords && coords.length >= 3 ? computePolygonCentroid(coords) : [null, null]
+
+  const { data: address, isLoading: loadingAddress } = useQuery({
+    queryKey: ["reverseGeocode", lng, lat],
+    queryFn: () => (lng !== null && lat !== null ? reverseGeocode(lng, lat) : null),
+    enabled: Boolean(polygon && lng !== null && lat !== null),
+    staleTime: 1000 * 60 * 30,
+  })
 
   const loadSample = () => {
     setField(demoFarm.polygon, demoFarm.hectares)
