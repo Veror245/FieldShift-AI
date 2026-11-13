@@ -1,9 +1,7 @@
 import { z } from "zod"
 
 export const cropOptions = [
-  "Rice", "Wheat", "Maize", "Jute", "Potato", "Mustard", "Chickpea",
-  "Lentil", "Soybean", "Sorghum", "Millet", "Groundnut", "Cotton",
-  "Sugarcane", "Vegetables", "Fallow",
+  "Rice", "Wheat", "Maize", "Chickpea", "Mung Bean", "Mustard", "Berseem", "Cowpea",
 ]
 
 export const seasonOptions = ["kharif", "rabi", "zaid"] as const
