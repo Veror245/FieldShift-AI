@@ -5,19 +5,19 @@ import maplibreglWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&
 import { TerraDraw, TerraDrawPolygonMode, TerraDrawSelectMode } from "terra-draw"
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter"
 import area from "@turf/area"
-import { motion, AnimatePresence } from "framer-motion"
 import {
   Check,
   Layers,
   LocateFixed,
-  MapPin,
   Pencil,
   Plus,
   RotateCcw,
+  RotateCw,
   Satellite,
   Search,
   Trash2,
 } from "lucide-react"
+import { toast } from "sonner"
 import ThinkingOrb from "@/components/common/ThinkingOrb"
 import { Button } from "@/components/ui/button"
 import { dateFor, nasaLayers, tileUrl } from "@/lib/nasaLayers"
@@ -156,8 +156,6 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
   const [drawing, setDrawing] = useState(false)
   const [locating, setLocating] = useState(false)
   const [query, setQuery] = useState("")
-  const [message, setMessage] = useState("")
-  const [fieldAddress, setFieldAddress] = useState<GeocodedAddress | null>(null)
   const [panelOpen, setPanelOpen] = useState(false)
   const [active, setActive] = useState<Record<string, boolean>>({})
   const [opacity, setOpacity] = useState(70)
@@ -171,7 +169,6 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
   const [savedCoords, setSavedCoords] = useState<[number, number][]>([])
   const [savedScreenCoords, setSavedScreenCoords] = useState<{ x: number; y: number }[]>([])
   const [liveHectares, setLiveHectares] = useState(0)
-  const [prospectiveHa, setProspectiveHa] = useState(0)
   const [savedHa, setSavedHa] = useState(0)
 
   useEffect(() => {
@@ -274,7 +271,6 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
 
         const centroid = computePolygonCentroid(uniqueCoords)
         reverseGeocode(centroid[0], centroid[1]).then((addr) => {
-          setFieldAddress(addr)
           onLocationFoundRef.current?.({ lat: centroid[1], lng: centroid[0], address: addr })
         })
 
@@ -311,7 +307,6 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
         setSavedScreenCoords(projectCoords(uniqueCoords))
         const centroid = computePolygonCentroid(uniqueCoords)
         reverseGeocode(centroid[0], centroid[1]).then((addr) => {
-          setFieldAddress(addr)
           onLocationFoundRef.current?.({ lat: centroid[1], lng: centroid[0], address: addr })
         })
       }
@@ -372,14 +367,12 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
       setSavedScreenCoords(projectCoords(uniqueCoords))
       const centroid = computePolygonCentroid(uniqueCoords)
       reverseGeocode(centroid[0], centroid[1]).then((addr) => {
-        setFieldAddress(addr)
         onLocationFoundRef.current?.({ lat: centroid[1], lng: centroid[0], address: addr })
       })
     } else if (!polygon) {
       setSavedCoords([])
       setSavedScreenCoords([])
       setSavedHa(0)
-      setFieldAddress(null)
     }
   }, [polygon, ready, projectCoords])
 
@@ -439,14 +432,8 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
       setCursorPos(c)
       setScreenCursor({ x: e.point.x, y: e.point.y })
 
-      if (livePoints.length >= 2) {
-        const prospective = [...livePoints, c]
-        setProspectiveHa(calculateLiveHectares(prospective))
-      } else {
-        setProspectiveHa(0)
-      }
     },
-    [drawing, livePoints, calculateLiveHectares]
+    [drawing]
   )
 
   useEffect(() => {
@@ -479,11 +466,9 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
     setSavedCoords([])
     setSavedScreenCoords([])
     setLiveHectares(0)
-    setProspectiveHa(0)
     setCursorPos(null)
     setScreenCursor(null)
     setDrawing(true)
-    setMessage("")
   }
 
   const resumeDrawing = () => {
@@ -498,7 +483,6 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
     setLiveHectares(savedHa)
     setRedoStack([])
     setDrawing(true)
-    setMessage("")
   }
 
   const undoLastPoint = useCallback(() => {
@@ -563,7 +547,6 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
 
     const centroid = computePolygonCentroid(livePoints)
     reverseGeocode(centroid[0], centroid[1]).then((addr) => {
-      setFieldAddress(addr)
       onLocationFoundRef.current?.({ lat: centroid[1], lng: centroid[0], address: addr })
     })
   }, [livePoints, projectCoords])
@@ -614,22 +597,18 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
     setSavedScreenCoords([])
     setDrawing(false)
     setLiveHectares(0)
-    setProspectiveHa(0)
     setSavedHa(0)
-    setMessage("")
-    setFieldAddress(null)
     onChange(null, 0)
   }
 
   const handleLocateMe = () => {
     if (locating) return
     if (!navigator.geolocation) {
-      setMessage("Geolocation is not supported by your browser.")
+      toast.error("Geolocation is not supported by your browser.")
       return
     }
 
     setLocating(true)
-    setMessage("")
     uiSoundEngine.playChipClickSfx()
 
     navigator.geolocation.getCurrentPosition(
@@ -651,7 +630,6 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
             .addTo(map)
 
           reverseGeocode(longitude, latitude).then((addr) => {
-            setFieldAddress(addr)
             onLocationFoundRef.current?.({ lat: latitude, lng: longitude, address: addr })
           })
         }
@@ -664,9 +642,9 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
           setLocating(false)
         }, 700)
         if (error.code === error.PERMISSION_DENIED) {
-          setMessage("Location permission denied. Please allow location access in your browser.")
+          toast.error("Location permission denied. Please allow location access in your browser.")
         } else {
-          setMessage("Unable to retrieve your location.")
+          toast.error("Unable to retrieve your location.")
         }
       },
       {
@@ -680,23 +658,21 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
   const search = async (e: { preventDefault: () => void }) => {
     e.preventDefault()
     if (!query.trim()) return
-    setMessage("Searching…")
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`
       )
       const data: { lat: string; lon: string }[] = await res.json()
       if (!data.length) {
-        setMessage("Place not found. Try a nearby town or village.")
+        toast.error("Place not found. Try a nearby town or village.")
         return
       }
       mapRef.current?.flyTo({
         center: [Number(data[0].lon), Number(data[0].lat)],
         zoom: 15,
       })
-      setMessage("")
     } catch {
-      setMessage("Search failed. Check your internet connection.")
+      toast.error("Search failed. Check your internet connection.")
     }
   }
 
@@ -716,11 +692,169 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
       : null
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-3xl border border-forest/15 shadow-sm">
-      <div
-        ref={containerRef}
-        className={`h-full w-full transition-all duration-300 ${drawing ? "cursor-crosshair" : ""}`}
-      />
+    <div className="relative flex flex-col h-full w-full overflow-hidden rounded-3xl border border-forest/15 bg-white dark:bg-[#182016] shadow-sm">
+      <div className="z-20 border-b border-forest/15 bg-white/95 dark:bg-[#182016]/95 px-3 py-2 backdrop-blur-md">
+        <div className="flex flex-wrap items-center justify-between gap-1.5">
+          <form onSubmit={search} className="relative flex items-center min-w-[140px] max-w-[210px] flex-1">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search address..."
+              className="h-8 w-full rounded-full border border-forest/15 bg-stone-50 dark:bg-stone-900/60 pl-3 pr-8 text-xs outline-none focus:ring-1 focus:ring-sage"
+            />
+            <button
+              type="submit"
+              className="absolute right-2 flex h-5 w-5 items-center justify-center text-forest/60 hover:text-forest transition-colors"
+              title="Search"
+              aria-label="Search"
+            >
+              <Search className="h-3.5 w-3.5" />
+            </button>
+          </form>
+
+          <div className="flex items-center gap-1.5 ml-auto">
+            <Button
+              type="button"
+              size="sm"
+              onClick={startDrawing}
+              className={`h-8 rounded-full px-3 text-xs font-semibold shadow-xs ${
+                drawing
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-forest text-white hover:bg-forest/90"
+              }`}
+            >
+              <Pencil className="mr-1 h-3.5 w-3.5" />
+              {drawing ? "Marking" : savedCoords.length >= 3 ? "Redraw" : "Draw field"}
+            </Button>
+
+            {drawing && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={completeDrawing}
+                disabled={livePoints.length < 3}
+                className="h-8 rounded-full bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-xs disabled:opacity-40 text-xs px-3"
+              >
+                <Check className="mr-1 h-3.5 w-3.5" />
+                Done ({livePoints.length})
+              </Button>
+            )}
+
+            {drawing && (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={undoLastPoint}
+                  disabled={livePoints.length === 0}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-forest/15 bg-white dark:bg-stone-900/60 text-forest dark:text-stone-200 hover:bg-forest/5 disabled:opacity-30 transition-colors"
+                  title="Undo corner"
+                  aria-label="Undo corner"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={redoLastPoint}
+                  disabled={redoStack.length === 0}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-forest/15 bg-white dark:bg-stone-900/60 text-forest dark:text-stone-200 hover:bg-forest/5 disabled:opacity-30 transition-colors"
+                  title="Redo corner"
+                  aria-label="Redo corner"
+                >
+                  <RotateCw className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+
+            {!drawing && savedCoords.length >= 3 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={resumeDrawing}
+                className="h-8 rounded-full px-2.5 text-xs"
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add corners
+              </Button>
+            )}
+
+            <button
+              type="button"
+              onClick={handleLocateMe}
+              disabled={locating}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-forest/15 bg-white dark:bg-stone-900/60 text-forest dark:text-stone-200 hover:bg-forest/5 shadow-xs transition-colors"
+              title="My location"
+              aria-label="My location"
+            >
+              <LocateFixed className={`h-4 w-4 ${locating ? "animate-pulse text-blue-600" : ""}`} />
+            </button>
+
+            <button
+              type="button"
+              onClick={clearField}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-forest/15 bg-white dark:bg-stone-900/60 text-forest dark:text-stone-200 hover:bg-forest/5 shadow-xs transition-colors"
+              title="Clear boundary"
+              aria-label="Clear boundary"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                uiSoundEngine.playChipClickSfx()
+                setBasemap(basemap === "satellite" ? "streets" : "satellite")
+              }}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-forest/15 bg-white dark:bg-stone-900/60 text-forest dark:text-stone-200 hover:bg-forest/5 shadow-xs transition-colors"
+              title={basemap === "satellite" ? "Switch to street map" : "Switch to satellite"}
+              aria-label="Toggle map layer"
+            >
+              <Layers className="h-3.5 w-3.5" />
+            </button>
+
+            <Button
+              type="button"
+              variant={panelOpen ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPanelOpen((v) => !v)}
+              className="h-8 rounded-full px-2.5 text-xs font-medium"
+              aria-expanded={panelOpen}
+            >
+              <Satellite className="mr-1 h-3.5 w-3.5" />
+              NASA{activeCount > 0 ? ` (${activeCount})` : ""}
+            </Button>
+          </div>
+        </div>
+
+        {drawing && (
+          <div className="flex flex-wrap items-center justify-between border-t border-forest/10 pt-1.5 mt-1.5 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-blue-500 animate-ping" />
+              <span className="font-semibold text-blue-700 dark:text-blue-300">
+                {livePoints.length === 0
+                  ? "Click on the map to place corners"
+                  : `${livePoints.length} corners marked`}
+              </span>
+              {liveHectares > 0 && (
+                <span className="rounded bg-blue-100 dark:bg-blue-950/50 px-2 py-0.5 font-mono text-[11px] font-bold text-blue-800 dark:text-blue-200">
+                  {liveHectares.toFixed(2)} ha
+                </span>
+              )}
+            </div>
+            <div className="hidden sm:flex items-center gap-3 text-[11px] text-stone-500">
+              <span><kbd className="rounded bg-stone-100 dark:bg-stone-800 px-1 py-0.5 font-mono text-[10px]">Ctrl+Z</kbd> Undo</span>
+              <span><kbd className="rounded bg-stone-100 dark:bg-stone-800 px-1 py-0.5 font-mono text-[10px]">Enter</kbd> Finish</span>
+              <span><kbd className="rounded bg-stone-100 dark:bg-stone-800 px-1 py-0.5 font-mono text-[10px]">Esc</kbd> Cancel</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="relative flex-1 w-full h-full min-h-0 overflow-hidden">
+        <div
+          ref={containerRef}
+          className={`h-full w-full transition-all duration-300 ${drawing ? "cursor-crosshair" : ""}`}
+        />
 
       <div
         className={`pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center transition-all duration-700 ease-in-out ${
@@ -905,262 +1039,60 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
         )}
       </svg>
 
-      <form
-        onSubmit={search}
-        className="absolute left-3 right-3 top-3 z-20 flex max-w-md gap-2"
-      >
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search a village, town or address"
-          className="h-11 flex-1 rounded-xl border border-forest/10 bg-white/90 px-4 text-sm shadow backdrop-blur outline-none focus:ring-2 focus:ring-sage"
-        />
-        <Button type="submit" size="icon" className="h-11 w-11 rounded-xl" aria-label="Search">
-          <Search className="h-5 w-5" />
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="icon"
-          onClick={handleLocateMe}
-          disabled={locating}
-          className="h-11 w-11 rounded-xl border border-forest/10 bg-white/90 shadow backdrop-blur"
-          aria-label="Locate my position with GPS"
-        >
-          <LocateFixed className={`h-5 w-5 ${locating ? "animate-pulse text-blue-600" : ""}`} />
-        </Button>
-      </form>
+        {panelOpen && (
+          <div className="absolute right-3 top-3 z-20 max-h-[calc(100%-4rem)] w-72 max-w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl bg-white/95 dark:bg-[#182016]/95 p-4 shadow-xl backdrop-blur border border-forest/15">
+            <p className="text-sm font-semibold">NASA satellite layers</p>
+            <p className="mb-3 text-xs text-forest/60">
+              Coarse regional context from NASA GIBS. These are not measurements of your exact field.
+            </p>
 
-      {fieldAddress && (
-        <div className="absolute left-3 top-16 z-20 flex flex-wrap items-center gap-2 rounded-xl border border-forest/10 bg-white/90 px-3 py-1.5 text-xs font-medium text-forest shadow backdrop-blur">
-          <div className="flex items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5 text-sage" />
-            <span>Location: {fieldAddress.formatted}</span>
-          </div>
-          {fieldAddress.lat !== undefined && fieldAddress.lng !== undefined && (
-            <span className="rounded bg-forest/10 px-1.5 py-0.5 font-mono text-[11px] text-forest/80">
-              {formatCoordinates(fieldAddress.lat, fieldAddress.lng)}
-            </span>
-          )}
-        </div>
-      )}
-
-      {message && (
-        <p className="absolute left-3 top-24 z-20 rounded-lg bg-white/95 px-3 py-1 text-xs text-forest shadow">
-          {message}
-        </p>
-      )}
-
-      {cursorCoords && (
-        <div className="pointer-events-none absolute bottom-3 right-16 z-10 hidden rounded-lg border border-forest/10 bg-white/85 px-2.5 py-1 font-mono text-[11px] text-forest/80 shadow backdrop-blur sm:block">
-          {formatCoordinates(cursorCoords[1], cursorCoords[0])}
-        </div>
-      )}
-
-      <AnimatePresence>
-        {drawing && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.16 }}
-            className="absolute top-16 left-3 right-3 z-20 mx-auto max-w-lg rounded-2xl border border-white/15 bg-black/80 p-3.5 text-white shadow-2xl backdrop-blur-xl"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-blue-400" />
-                <span className="text-xs font-semibold">
-                  {livePoints.length === 0
-                    ? "Click corners on map to outline field"
-                    : `${livePoints.length} corners marked (Click to add more)`}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 font-mono text-xs">
-                {liveHectares > 0 && (
-                  <span className="font-bold text-blue-300">
-                    {liveHectares.toFixed(2)} ha
+            <div className="space-y-1">
+              {nasaLayers.map((l) => (
+                <label
+                  key={l.id}
+                  className="flex cursor-pointer items-start gap-3 rounded-xl p-2 hover:bg-forest/5"
+                >
+                  <input
+                    type="checkbox"
+                    checked={!!active[l.id]}
+                    onChange={(e) => setActive((a) => ({ ...a, [l.id]: e.target.checked }))}
+                    className="mt-0.5 h-5 w-5 accent-forest"
+                  />
+                  <span className="text-sm">
+                    <span className="font-medium">{l.label}</span>
+                    <br />
+                    <span className="text-xs text-forest/60">
+                      {l.description} Latest around {dateFor(l.lagDays)}.
+                    </span>
                   </span>
-                )}
-                {livePoints.length >= 2 && prospectiveHa > 0 && (
-                  <span className="text-[10px] text-white/60">
-                    (Est: {prospectiveHa.toFixed(2)} ha)
-                  </span>
-                )}
-              </div>
+                </label>
+              ))}
             </div>
 
-            <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2 text-[10px] text-white/60">
-              <div className="flex flex-wrap items-center gap-2">
-                <span><kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px] text-white">Ctrl+Z</kbd> Undo</span>
-                <span><kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px] text-white">Ctrl+Y</kbd> Redo</span>
-                <span><kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px] text-white">Enter</kbd> Finish</span>
-                <span><kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px] text-white">Esc</kbd> Cancel</span>
+            <div className="mt-3 space-y-1">
+              <div className="flex justify-between text-xs">
+                <span>Layer opacity</span>
+                <span>{opacity}%</span>
               </div>
-
-              <div className="ml-auto flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={undoLastPoint}
-                  disabled={livePoints.length === 0}
-                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-white hover:bg-white/10 disabled:opacity-40 transition-colors"
-                >
-                  <RotateCcw className="h-3 w-3" />
-                  Undo
-                </button>
-                <button
-                  type="button"
-                  onClick={redoLastPoint}
-                  disabled={redoStack.length === 0}
-                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-white hover:bg-white/10 disabled:opacity-40 transition-colors"
-                >
-                  Redo
-                </button>
-                <button
-                  type="button"
-                  onClick={completeDrawing}
-                  disabled={livePoints.length < 3}
-                  className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1 text-[11px] font-bold text-white shadow hover:bg-blue-500 disabled:opacity-40 transition-all"
-                >
-                  <Check className="h-3.5 w-3.5" />
-                  Done ({livePoints.length} {livePoints.length === 1 ? "corner" : "corners"})
-                </button>
-              </div>
+              <input
+                type="range"
+                min={20}
+                max={100}
+                step={10}
+                value={opacity}
+                onChange={(e) => setOpacity(Number(e.target.value))}
+                aria-label="Layer opacity"
+                className="w-full accent-forest"
+              />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {panelOpen && (
-        <div className="absolute left-3 top-16 z-20 max-h-[calc(100%-11.5rem)] w-72 max-w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur">
-          <p className="text-sm font-semibold">NASA satellite layers</p>
-          <p className="mb-3 text-xs text-forest/60">
-            Coarse regional context from NASA GIBS. These are not measurements of your exact field.
-          </p>
-
-          <div className="space-y-1">
-            {nasaLayers.map((l) => (
-              <label
-                key={l.id}
-                className="flex cursor-pointer items-start gap-3 rounded-xl p-2 hover:bg-forest/5"
-              >
-                <input
-                  type="checkbox"
-                  checked={!!active[l.id]}
-                  onChange={(e) => setActive((a) => ({ ...a, [l.id]: e.target.checked }))}
-                  className="mt-0.5 h-5 w-5 accent-forest"
-                />
-                <span className="text-sm">
-                  <span className="font-medium">{l.label}</span>
-                  <br />
-                  <span className="text-xs text-forest/60">
-                    {l.description} Latest around {dateFor(l.lagDays)}.
-                  </span>
-                </span>
-              </label>
-            ))}
           </div>
+        )}
 
-          <div className="mt-3 space-y-1">
-            <div className="flex justify-between text-xs">
-              <span>Layer opacity</span>
-              <span>{opacity}%</span>
-            </div>
-            <input
-              type="range"
-              min={20}
-              max={100}
-              step={10}
-              value={opacity}
-              onChange={(e) => setOpacity(Number(e.target.value))}
-              aria-label="Layer opacity"
-              className="w-full accent-forest"
-            />
+        {cursorCoords && (
+          <div className="pointer-events-none absolute bottom-3 right-16 z-10 hidden rounded-lg border border-forest/10 bg-white/85 px-2.5 py-1 font-mono text-[11px] text-forest/80 shadow backdrop-blur sm:block">
+            {formatCoordinates(cursorCoords[1], cursorCoords[0])}
           </div>
-        </div>
-      )}
-
-      <div className="absolute bottom-3 left-3 right-14 z-20 flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          onClick={startDrawing}
-          className={`h-11 rounded-xl shadow transition-all ${
-            drawing
-              ? "bg-blue-600 text-white font-bold hover:bg-blue-700"
-              : "bg-forest text-ivory hover:bg-forest/90"
-          }`}
-        >
-          <Pencil className="mr-2 h-4 w-4" />
-          {drawing ? "Marking field…" : savedCoords.length >= 3 ? "Redraw field" : "Draw field"}
-        </Button>
-
-        {drawing && (
-          <Button
-            type="button"
-            onClick={completeDrawing}
-            disabled={livePoints.length < 3}
-            className="h-11 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow disabled:opacity-40"
-          >
-            <Check className="mr-2 h-4 w-4" />
-            Done ({livePoints.length} {livePoints.length === 1 ? "corner" : "corners"})
-          </Button>
         )}
-
-        {!drawing && savedCoords.length >= 3 && (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={resumeDrawing}
-            className="h-11 rounded-xl"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add corners
-          </Button>
-        )}
-
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={handleLocateMe}
-          disabled={locating}
-          className="h-11 rounded-xl"
-        >
-          <LocateFixed className={`mr-2 h-4 w-4 ${locating ? "animate-pulse text-blue-600" : ""}`} />
-          {locating ? "Locating…" : "My location"}
-        </Button>
-
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={clearField}
-          className="h-11 rounded-xl"
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Clear
-        </Button>
-
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => {
-            uiSoundEngine.playChipClickSfx()
-            setBasemap(basemap === "satellite" ? "streets" : "satellite")
-          }}
-          className="h-11 rounded-xl"
-        >
-          <Layers className="mr-2 h-4 w-4" />
-          {basemap === "satellite" ? "Street map" : "Satellite"}
-        </Button>
-
-        <Button
-          type="button"
-          variant={panelOpen ? "default" : "secondary"}
-          onClick={() => setPanelOpen((v) => !v)}
-          className="h-11 rounded-xl"
-          aria-expanded={panelOpen}
-        >
-          <Satellite className="mr-2 h-4 w-4" />
-          NASA layers{activeCount > 0 ? ` (${activeCount})` : ""}
-        </Button>
       </div>
     </div>
   )

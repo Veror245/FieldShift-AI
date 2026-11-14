@@ -134,7 +134,7 @@ export default function FieldExplorer() {
       await wait(650)
       setInvestigating(false)
       await wait(350)
-      navigate("/strategies")
+      navigate("/findings")
     } catch (e) {
       setInvestigating(false)
       toast.error(e instanceof Error ? e.message : "Could not start the investigation.")
@@ -162,49 +162,49 @@ export default function FieldExplorer() {
             {investigating && (
               <motion.div
                 initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-                animate={{ opacity: 1, backdropFilter: "blur(16px)" }}
+                animate={{ opacity: 1, backdropFilter: "blur(18px)" }}
                 exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
                 transition={{ duration: 0.45, ease: "easeInOut" }}
-                className="absolute inset-0 z-30 flex items-center justify-center p-6 bg-forest-950/20 backdrop-blur-xl rounded-2xl"
+                className="absolute inset-0 z-30 flex items-center justify-center p-6 bg-black/65 backdrop-blur-xl rounded-2xl"
               >
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.92, y: 12 }}
+                  initial={{ opacity: 0, scale: 0.94, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.94, y: -8 }}
+                  exit={{ opacity: 0, scale: 0.96, y: -6 }}
                   transition={{ duration: 0.35, ease: "easeOut" }}
-                  className="w-full max-w-sm rounded-3xl border border-white/60 dark:border-forest/40 bg-white/90 dark:bg-[#16211a]/90 p-6 shadow-2xl backdrop-blur-2xl text-center space-y-4"
+                  className="flex flex-col items-center justify-center text-center max-w-sm w-full space-y-4"
                 >
                   <div className="flex items-center justify-center">
                     <ThinkingOrb
                       state={investigationStages[investigationStep]?.orbState ?? "working"}
-                      size={76}
-                      speed={1.1}
-                      theme="auto"
-                      className="mx-auto drop-shadow-md"
+                      size={100}
+                      speed={1.15}
+                      theme="dark"
+                      className="mx-auto drop-shadow-[0_0_24px_rgba(78,99,61,0.5)]"
                       aria-label="Agent working"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-forest/20 bg-forest/5 px-3 py-1 text-xs font-semibold text-forest dark:text-forest-300">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-xs font-semibold text-white/90 backdrop-blur-md">
                       <span className="relative flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-forest opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-forest" />
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
                       </span>
                       Step {investigationStep + 1} of {investigationStages.length}
                     </div>
-                    <h3 className="text-base font-bold text-stone-900 dark:text-stone-100">
+                    <h3 className="text-xl font-bold text-white tracking-tight drop-shadow-sm">
                       {investigationStages[investigationStep]?.title}
                     </h3>
-                    <p className="text-xs text-stone-600 dark:text-stone-300">
+                    <p className="text-xs text-stone-200/85 max-w-xs leading-relaxed drop-shadow-sm">
                       {investigationStages[investigationStep]?.detail}
                     </p>
                   </div>
 
-                  <div className="space-y-1.5 pt-1">
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-stone-200/80 dark:bg-stone-800/80">
+                  <div className="w-full max-w-xs space-y-1.5 pt-1">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
                       <motion.div
-                        className="h-full rounded-full bg-forest"
+                        className="h-full rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]"
                         initial={{ width: "20%" }}
                         animate={{
                           width: `${((investigationStep + 1) / investigationStages.length) * 100}%`,
@@ -212,7 +212,7 @@ export default function FieldExplorer() {
                         transition={{ duration: 0.4, ease: "easeInOut" }}
                       />
                     </div>
-                    <div className="flex justify-between text-[11px] font-medium text-stone-500 dark:text-stone-400">
+                    <div className="flex justify-between text-[11px] font-medium text-white/60">
                       <span>Autonomous agent workflow</span>
                       <span>{Math.round(((investigationStep + 1) / investigationStages.length) * 100)}%</span>
                     </div>

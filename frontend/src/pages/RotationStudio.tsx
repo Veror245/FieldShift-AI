@@ -1,7 +1,8 @@
 import { useState } from "react"
+import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { FlaskConical, ShieldCheck } from "lucide-react"
+import { ArrowRight, FlaskConical, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -79,10 +80,21 @@ export default function RotationStudio() {
 
   return (
     <>
-      <PageHeader
-        title="Rotation Studio"
-        description="Compare crop rotation options side by side. You stay in control of every decision."
-      />
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <PageHeader
+          title="Rotation Studio"
+          description="Compare crop rotation options side by side. You stay in control of every decision."
+        />
+        <Button
+          asChild
+          className="h-10 rounded-xl bg-forest text-ivory hover:bg-forest/90 px-4 text-xs font-semibold shadow-sm transition-all"
+        >
+          <Link to="/reports">
+            Go to Reports
+            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+          </Link>
+        </Button>
+      </div>
 
       {USE_MOCK && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-sun/40 bg-sun/10 p-4 text-sm">
@@ -96,11 +108,19 @@ export default function RotationStudio() {
       )}
 
       {selected && (
-        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-forest/20 bg-white p-4 text-sm">
-          <ShieldCheck className="h-5 w-5 shrink-0 text-forest" />
-          <p>
-            Selected for review: <strong>{selected.name}</strong>. Nothing has changed on your farm.
-          </p>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-forest/20 bg-white p-4 text-sm">
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="h-5 w-5 shrink-0 text-forest" />
+            <p>
+              Selected for review: <strong>{selected.name}</strong>. Nothing has changed on your farm.
+            </p>
+          </div>
+          <Button asChild size="sm" className="rounded-xl bg-forest text-ivory hover:bg-forest/90">
+            <Link to="/reports">
+              Go to Reports
+              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            </Link>
+          </Button>
         </div>
       )}
 
@@ -150,6 +170,18 @@ export default function RotationStudio() {
           </div>
 
           <ComparisonTable strategies={list} />
+
+          <div className="flex justify-end pt-2">
+            <Button
+              asChild
+              className="h-11 rounded-xl bg-forest text-ivory hover:bg-forest/90 px-6 font-semibold shadow-md transition-all"
+            >
+              <Link to="/reports">
+                Go to Reports
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
 
           <p className="text-xs text-forest/50">
             Scores compare these options against each other using the available evidence. They do

@@ -38,6 +38,15 @@ export default function ClimateFindings() {
             </>
           }
         />
+        <Button
+          asChild
+          className="h-10 rounded-xl bg-[#4E633D] text-[#F7F4EC] hover:bg-[#5D7749] px-4 text-xs font-semibold shadow-sm transition-all"
+        >
+          <Link to="/strategies">
+            Compare rotation strategies
+            <ArrowRightIcon className="ml-1.5 h-3.5 w-3.5" />
+          </Link>
+        </Button>
       </motion.div>
 
       {isLoading && (
