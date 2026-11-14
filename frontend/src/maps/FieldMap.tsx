@@ -72,11 +72,14 @@ const mapStyle: maplibregl.StyleSpecification = {
     satellite: {
       type: "raster",
       tiles: [
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        "https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
+        "https://mt1.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
+        "https://mt2.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
+        "https://mt3.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
       ],
       tileSize: 256,
-      maxzoom: 19,
-      attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
+      maxzoom: 21,
+      attribution: "Imagery © Google HD Satellite",
     },
     streets: {
       type: "raster",
