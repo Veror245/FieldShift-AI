@@ -285,3 +285,13 @@
     scroll-behavior: auto !important;
   }
 }
+
+select {
+  cursor: pointer;
+}
+
+select option {
+  background-color: #FFFFFF;
+  color: #1E241B;
+  padding: 8px 12px;
+}

@@ -13,9 +13,10 @@ type Props = {
   options: SelectOption[]
   onChange: (value: string) => void
   placeholder?: string
+  className?: string
 }
 
-export function GlassSelect({ value, options, onChange, placeholder = "Select option" }: Props) {
+export function GlassSelect({ value, options, onChange, placeholder = "Select option", className }: Props) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -51,11 +52,14 @@ export function GlassSelect({ value, options, onChange, placeholder = "Select op
       <button
         type="button"
         onClick={toggle}
-        className="h-11 w-full rounded-xl border border-[#C8BFA9] bg-[#E8E2D4] px-3.5 text-xs text-[#1E241B] flex items-center justify-between shadow-sm outline-none focus:border-[#63784E] focus:ring-2 focus:ring-[#63784E]/20 transition-all text-left"
+        className={
+          className ||
+          "h-11 w-full box-border rounded-xl border border-forest/15 bg-white px-3.5 text-sm text-forest flex items-center justify-between shadow-xs outline-none focus:ring-2 focus:ring-sage transition-all text-left"
+        }
       >
         <span className="truncate font-medium">{selected ? selected.label : placeholder}</span>
         <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.15 }}>
-          <ChevronDownIcon className="h-4 w-4 text-[#666257] shrink-0" />
+          <ChevronDownIcon className="h-4 w-4 text-forest/60 shrink-0" />
         </motion.div>
       </button>
 
@@ -66,7 +70,7 @@ export function GlassSelect({ value, options, onChange, placeholder = "Select op
             animate={{ opacity: 1, y: 4, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute left-0 right-0 top-full z-50 rounded-xl bg-[#F2EDE2] border border-[#D4CCB9] p-1.5 shadow-[0_12px_30px_rgba(42,38,30,0.14)]"
+            className="absolute left-0 right-0 top-full z-50 mt-1.5 rounded-xl bg-white border border-forest/15 p-1.5 shadow-2xl backdrop-blur-xl"
           >
             <div className="max-h-56 overflow-y-auto space-y-1">
               {options.map((opt) => {
@@ -76,14 +80,14 @@ export function GlassSelect({ value, options, onChange, placeholder = "Select op
                     key={opt.value}
                     type="button"
                     onClick={() => select(opt.value)}
-                    className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-xs text-left transition-colors ${
+                    className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm text-left transition-colors ${
                       isSelected
-                        ? "bg-[#4E633D]/12 font-bold text-[#4E633D] border border-[#4E633D]/25"
-                        : "text-[#2F362B] hover:bg-[#E5DFD0]"
+                        ? "bg-forest/10 font-bold text-forest border border-forest/20"
+                        : "text-stone-800 hover:bg-forest/5"
                     }`}
                   >
                     <span>{opt.label}</span>
-                    {isSelected && <CheckIcon className="h-3.5 w-3.5 text-[#4E633D] shrink-0" />}
+                    {isSelected && <CheckIcon className="h-4 w-4 text-forest shrink-0" />}
                   </button>
                 )
               })}

@@ -5,6 +5,7 @@ import { Loader2, Rocket, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Term } from "@/components/common/Term"
+import { GlassSelect } from "@/components/common/GlassSelect"
 import {
   cropOptions,
   farmSchema,
@@ -17,9 +18,6 @@ import {
 
 const inputClass =
   "h-11 w-full box-border rounded-xl border border-forest/15 bg-white px-3.5 pr-4 text-sm outline-none transition-all focus:ring-2 focus:ring-sage"
-
-const selectClass =
-  "h-11 w-full box-border rounded-xl border border-forest/15 bg-white pl-3.5 pr-10 text-sm outline-none transition-all focus:ring-2 focus:ring-sage appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%235C5A52%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[right_14px_center] bg-no-repeat cursor-pointer truncate"
 
 const seasonLabel: Record<(typeof seasonOptions)[number], string> = {
   kharif: "Kharif",
@@ -200,26 +198,25 @@ export default function FarmForm({ onSubmit, initial, submitting = false }: Prop
                   <span className="flex-1 pl-1 text-sm font-semibold">
                     {i + 1}. {entry.crop}
                   </span>
-                  <select
-                    aria-label={`Season for ${entry.crop}`}
-                    value={entry.season}
-                    onChange={(e) =>
-                      field.onChange(
-                        field.value.map((r, idx) =>
-                          idx === i
-                            ? { ...r, season: e.target.value as (typeof seasonOptions)[number] }
-                            : r
+                  <div className="w-36">
+                    <GlassSelect
+                      value={entry.season}
+                      onChange={(val) =>
+                        field.onChange(
+                          field.value.map((r, idx) =>
+                            idx === i
+                              ? { ...r, season: val as (typeof seasonOptions)[number] }
+                              : r
+                          )
                         )
-                      )
-                    }
-                    className="h-9 rounded-lg border border-forest/15 bg-white px-2 pr-7 text-xs"
-                  >
-                    {seasonOptions.map((s) => (
-                      <option key={s} value={s}>
-                        {seasonLabel[s]}
-                      </option>
-                    ))}
-                  </select>
+                      }
+                      className="h-9 w-full box-border rounded-lg border border-forest/15 bg-white px-2.5 text-xs text-forest flex items-center justify-between shadow-xs outline-none focus:ring-1 focus:ring-sage transition-all text-left"
+                      options={seasonOptions.map((s) => ({
+                        value: s,
+                        label: seasonLabel[s],
+                      }))}
+                    />
+                  </div>
                   <button
                     type="button"
                     aria-label={`Remove ${entry.crop}`}
@@ -284,13 +281,23 @@ export default function FarmForm({ onSubmit, initial, submitting = false }: Prop
       </div>
 
       <Field label="Soil texture">
-        <select {...register("soilTexture")} className={selectClass}>
-          <option value="unknown">I don't know</option>
-          <option value="sandy">Sandy (loose, drains fast)</option>
-          <option value="loamy">Loamy (soft, crumbly)</option>
-          <option value="clay">Clay (sticky, holds water)</option>
-          <option value="silty">Silty (smooth, floury)</option>
-        </select>
+        <Controller
+          control={control}
+          name="soilTexture"
+          render={({ field }) => (
+            <GlassSelect
+              value={field.value}
+              onChange={field.onChange}
+              options={[
+                { value: "unknown", label: "I don't know" },
+                { value: "sandy", label: "Sandy (loose, drains fast)" },
+                { value: "loamy", label: "Loamy (soft, crumbly)" },
+                { value: "clay", label: "Clay (sticky, holds water)" },
+                { value: "silty", label: "Silty (smooth, floury)" },
+              ]}
+            />
+          )}
+        />
       </Field>
 
       <details className="rounded-xl border border-forest/10 p-3">
@@ -320,11 +327,21 @@ export default function FarmForm({ onSubmit, initial, submitting = false }: Prop
       </details>
 
       <Field label="Water availability">
-        <select {...register("water")} className={selectClass}>
-          <option value="reliable">Reliable irrigation all season</option>
-          <option value="unreliable">Irrigation, but unreliable</option>
-          <option value="rainfed">Rain-fed only</option>
-        </select>
+        <Controller
+          control={control}
+          name="water"
+          render={({ field }) => (
+            <GlassSelect
+              value={field.value}
+              onChange={field.onChange}
+              options={[
+                { value: "reliable", label: "Reliable irrigation all season" },
+                { value: "unreliable", label: "Irrigation, but unreliable" },
+                { value: "rainfed", label: "Rain-fed only" },
+              ]}
+            />
+          )}
+        />
       </Field>
 
       <Field
@@ -362,12 +379,22 @@ export default function FarmForm({ onSubmit, initial, submitting = false }: Prop
         />
 
         <Field label="Maximum water demand">
-          <select {...register("maxWater")} className={selectClass}>
-            <option value="any">No limit</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
+          <Controller
+            control={control}
+            name="maxWater"
+            render={({ field }) => (
+              <GlassSelect
+                value={field.value}
+                onChange={field.onChange}
+                options={[
+                  { value: "any", label: "No limit" },
+                  { value: "low", label: "Low" },
+                  { value: "medium", label: "Medium" },
+                  { value: "high", label: "High" },
+                ]}
+              />
+            )}
+          />
         </Field>
       </div>
 

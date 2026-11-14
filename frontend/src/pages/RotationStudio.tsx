@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { ArrowRight, FlaskConical, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -17,10 +17,9 @@ import {
 import { PageHeader } from "@/components/common/PageHeader"
 import StrategyCard from "@/rotation-studio/StrategyCard"
 import ComparisonTable from "@/rotation-studio/ComparisonTable"
-import PriorityPanel from "@/rotation-studio/PriorityPanel"
 import WhyDrawer from "@/rotation-studio/WhyDrawer"
 import { getStrategies, USE_MOCK } from "@/services/api"
-import { weightsToScores, type Weights } from "@/lib/scoring"
+import { weightsToScores } from "@/lib/scoring"
 import { useFarmStore } from "@/store/useFarmStore"
 import type { Strategy } from "@/types/api"
 
@@ -30,13 +29,10 @@ const rankMap = (list: Strategy[]) =>
   ) as Record<string, number>
 
 export default function RotationStudio() {
-  const qc = useQueryClient()
-  const { selectedStrategyId, selectStrategy, weights: applied, setWeights } = useFarmStore()
+  const { selectedStrategyId, selectStrategy, weights } = useFarmStore()
 
-  const [weights, setLocalWeights] = useState<Weights>(applied)
   const [pending, setPending] = useState<Strategy | null>(null)
   const [explaining, setExplaining] = useState<Strategy | null>(null)
-  const [prevRanks, setPrevRanks] = useState<Record<string, number>>({})
 
   const {
     data: list,
@@ -44,32 +40,14 @@ export default function RotationStudio() {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ["strategies", applied],
-    queryFn: () => getStrategies(applied),
+    queryKey: ["strategies", weights],
+    queryFn: () => getStrategies(weights),
     staleTime: 60_000,
   })
 
   const ranks = list ? rankMap(list) : {}
   const baseline = list?.find((s) => s.kind === "baseline")
   const selected = list?.find((s) => s.id === selectedStrategyId)
-  const dirty = JSON.stringify(weights) !== JSON.stringify(applied)
-
-  const revise = useMutation({
-    mutationFn: async (w: Weights) => {
-      await qc.fetchQuery({
-        queryKey: ["strategies", w],
-        queryFn: () => getStrategies(w),
-        staleTime: 60_000,
-      })
-      return w
-    },
-    onSuccess: (w) => {
-      if (list) setPrevRanks(rankMap(list))
-      setWeights(w)
-      toast.success("Strategies revised with your priorities.")
-    },
-    onError: () => toast.error("Could not revise strategies. Please try again."),
-  })
 
   const confirm = () => {
     if (!pending) return
@@ -143,14 +121,6 @@ export default function RotationStudio() {
 
       {list && (
         <div className="space-y-8">
-          <PriorityPanel
-            weights={weights}
-            onChange={setLocalWeights}
-            onRevise={() => revise.mutate(weights)}
-            revising={revise.isPending}
-            dirty={dirty}
-          />
-
           <div className="grid gap-6 md:grid-cols-2">
             {list.map((s, i) => (
               <StrategyCard
@@ -159,7 +129,7 @@ export default function RotationStudio() {
                 baseline={baseline}
                 priorities={weightsToScores(weights)}
                 rank={ranks[s.id]}
-                rankChange={prevRanks[s.id] ? prevRanks[s.id] - ranks[s.id] : 0}
+                rankChange={0}
                 total={list.length}
                 index={i}
                 selected={s.id === selectedStrategyId}

@@ -1,3 +1,10 @@
+import type {
+  BackendClimateAnomaly,
+  BackendBaselineComparison,
+  BackendClimateData,
+  BackendEarthObs,
+} from "./investigation"
+
 export type CropSeason = { season: string; crop: string }
 
 export type Scores = {
@@ -51,7 +58,21 @@ export type ClimateSeason = {
   isAnomaly: boolean
 }
 
-export type ClimateCluster = { id: number; name: string; description: string }
+export type ClimateCluster = {
+  id: number
+  name: string
+  description: string
+  size?: number
+  centroid?: {
+    avg_temperature: number
+    total_rainfall: number
+    rainfall_std: number
+    avg_solar_radiation: number
+    avg_humidity: number
+    avg_wind_speed: number
+    rainy_day_ratio: number
+  }
+}
 
 export type SimilarSeason = { year: number; reason: string }
 
@@ -69,6 +90,10 @@ export type ClimateFindings = {
   currentSeason: CurrentSeasonSummary
   source: string
   resolutionNote: string
+  rawClimate?: BackendClimateData | null
+  earthObs?: BackendEarthObs | null
+  baseline?: BackendBaselineComparison | null
+  anomalies?: BackendClimateAnomaly[] | null
 }
 
 export type EvidenceKind = "observation" | "derived" | "ml" | "agronomy" | "farmer" | "llm"

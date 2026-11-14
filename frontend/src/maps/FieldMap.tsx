@@ -655,6 +655,27 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
     )
   }
 
+  const handleFlyToField = () => {
+    uiSoundEngine.playChipClickSfx()
+    const map = mapRef.current
+    if (!map) return
+
+    if (polygonRef.current) {
+      fitTo(map, polygonRef.current, 1400)
+      return
+    }
+
+    const pts = livePoints.length >= 2 ? livePoints : savedCoords.length >= 2 ? savedCoords : []
+    if (pts.length >= 2) {
+      const bounds = new maplibregl.LngLatBounds(pts[0], pts[0])
+      pts.forEach((p) => bounds.extend(p))
+      map.fitBounds(bounds, { padding: 70, maxZoom: 17, duration: 1400 })
+      return
+    }
+
+    toast.info("No mapped field yet. Click 'Draw field' or search for your land.")
+  }
+
   const search = async (e: { preventDefault: () => void }) => {
     e.preventDefault()
     if (!query.trim()) return
@@ -787,6 +808,18 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
               aria-label="My location"
             >
               <LocateFixed className={`h-4 w-4 ${locating ? "animate-pulse text-blue-600" : ""}`} />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleFlyToField}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-forest/15 bg-white dark:bg-stone-900/60 text-forest dark:text-stone-200 hover:bg-forest/5 shadow-xs transition-colors"
+              title="Go to mapped field"
+              aria-label="Go to mapped field"
+            >
+              <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M5 4h14v3.5H9.5v3.5h7.5v3.5H9.5V20H5V4z" />
+              </svg>
             </button>
 
             <button

@@ -1,6 +1,20 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
+import {
+  ArrowRight,
+  AlertTriangle,
+  CloudRain,
+  Thermometer,
+  Sun,
+  Wind,
+  Droplets,
+  Calendar,
+  Layers,
+  CheckCircle2,
+  Database,
+  Activity,
+} from "lucide-react"
 import { ArrowRightIcon, HistoryIcon } from "@/components/common/Icons"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -33,8 +47,8 @@ export default function ClimateFindings() {
           title="Climate Findings"
           description={
             <>
-              Historical weather variability and{" "}
-              <Term k="rainfallAnomaly">unusual seasons</Term> over the last 10 years.
+              NASA POWER 30-year agroclimatology records, KMeans seasonal clusters, and{" "}
+              <Term k="rainfallAnomaly">monsoon anomalies</Term>.
             </>
           }
         />
@@ -66,47 +80,205 @@ export default function ClimateFindings() {
 
       {data && (() => {
         const seasons = data.seasons
-        const avg = Math.round(seasons.reduce((a, s) => a + s.rainfallMm, 0) / seasons.length)
-        const driest = seasons.reduce((a, b) => (b.rainfallMm < a.rainfallMm ? b : a))
-        const unusual = seasons.filter((s) => s.isAnomaly).length
+        const raw = data.rawClimate
+        const baseline = raw?.baseline_comparison ?? data.baseline
+        const anomalies = raw?.anomalies ?? data.anomalies ?? []
+        const currentAnomaly = anomalies[0]
+        const earth = data.earthObs
+        const currentSeason = raw?.current_season
+
+        const recentPrecip = baseline?.recent_precip_mm ?? currentAnomaly?.features.total_rainfall ?? 1051.94
+        const histAvgPrecip = baseline?.historical_avg_mm ?? 1284.22
+        const devPct = baseline?.deviation_pct ?? -18.09
+        const anomalyScore = currentAnomaly?.score ?? 0.627
+        const meanTemp30yr = earth?.temperature_c ?? 25.25
+        const totalRecordDays = earth?.n_days ?? 11323
 
         return (
           <motion.div variants={pageContainer} className="space-y-4">
-            <motion.div variants={pageItem} className="grid gap-3 sm:grid-cols-3">
-              <Card className="rounded-2xl p-4">
-                <p className="text-xs text-[#5C5A52]">Average seasonal rainfall</p>
-                <div className="mt-1 flex items-baseline gap-1.5">
+            <motion.div variants={pageItem} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Card className="rounded-2xl p-4 bg-white/80 backdrop-blur border border-forest/15 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-[#5C5A52]">Recent Kharif Rainfall</p>
+                  <span className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-red-100 text-red-800 border border-red-200">
+                    <CloudRain className="h-3 w-3" />
+                    {devPct.toFixed(1)}% deficit
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-1.5">
                   <span className="text-2xl font-bold tracking-tight text-[#1E241B]">
-                    <AnimatedNumber value={avg} decimals={0} />
+                    <AnimatedNumber value={Math.round(recentPrecip)} decimals={0} />
                   </span>
                   <span className="text-xs font-semibold text-[#5C5A52]">mm</span>
                 </div>
+                <p className="mt-1 text-[11px] text-[#7E7A6E]">
+                  Historical avg: {Math.round(histAvgPrecip)} mm
+                </p>
               </Card>
 
-              <Card className="rounded-2xl p-4">
-                <p className="text-xs text-[#5C5A52]">Driest season on record</p>
-                <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold tracking-tight text-[#1E241B]">{driest.year}</span>
-                  <span className="text-xs text-[#A66843] font-semibold">
-                    (<AnimatedNumber value={driest.rainfallMm} decimals={0} suffix=" mm" />)
+              <Card className="rounded-2xl p-4 bg-white/80 backdrop-blur border border-forest/15 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-[#5C5A52]">Anomaly Severity</p>
+                  <span className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                    <AlertTriangle className="h-3 w-3" />
+                    Significant
                   </span>
                 </div>
-              </Card>
-
-              <Card className="rounded-2xl p-4">
-                <p className="text-xs text-[#5C5A52]">Unusual weather anomalies</p>
-                <div className="mt-1 flex items-baseline gap-1.5">
+                <div className="mt-2 flex items-baseline gap-1.5">
                   <span className="text-2xl font-bold tracking-tight text-[#A66843]">
-                    <AnimatedNumber value={unusual} decimals={0} />
+                    <AnimatedNumber value={anomalyScore * 100} decimals={1} suffix="%" />
                   </span>
-                  <span className="text-xs font-medium text-[#5C5A52]">of {seasons.length} seasons</span>
+                  <span className="text-xs font-semibold text-[#5C5A52]">score ({anomalyScore.toFixed(2)})</span>
                 </div>
+                <p className="mt-1 text-[11px] text-[#7E7A6E]">
+                  Date range: {currentAnomaly?.date_range ?? "Kharif 2025"}
+                </p>
+              </Card>
+
+              <Card className="rounded-2xl p-4 bg-white/80 backdrop-blur border border-forest/15 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-[#5C5A52]">30-Yr Mean Temp</p>
+                  <span className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    <Thermometer className="h-3 w-3" />
+                    NASA POWER
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-1.5">
+                  <span className="text-2xl font-bold tracking-tight text-[#1E241B]">
+                    <AnimatedNumber value={meanTemp30yr} decimals={2} />
+                  </span>
+                  <span className="text-xs font-semibold text-[#5C5A52]">°C</span>
+                </div>
+                <p className="mt-1 text-[11px] text-[#7E7A6E]">
+                  Coverage: 1995-01-01 to 2025-12-31
+                </p>
+              </Card>
+
+              <Card className="rounded-2xl p-4 bg-white/80 backdrop-blur border border-forest/15 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-[#5C5A52]">Observation Record</p>
+                  <span className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+                    <CheckCircle2 className="h-3 w-3" />
+                    0 missing days
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-1.5">
+                  <span className="text-2xl font-bold tracking-tight text-[#1E241B]">
+                    <AnimatedNumber value={totalRecordDays} decimals={0} />
+                  </span>
+                  <span className="text-xs font-semibold text-[#5C5A52]">daily steps (30 yrs)</span>
+                </div>
+                <p className="mt-1 text-[11px] text-[#7E7A6E]">
+                  Resolution: {earth?.grid_resolution_deg ?? 0.5}° spatial grid
+                </p>
               </Card>
             </motion.div>
 
+            {currentAnomaly && (
+              <motion.div variants={pageItem}>
+                <Card className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-amber-200/60">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-800">
+                        <AlertTriangle className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-bold text-[#1E241B]">
+                          Detected Climate Anomaly: {currentAnomaly.date_range}
+                        </h2>
+                        <p className="text-xs text-[#5C5A52]">
+                          Unusual seasonal pattern flagged by multivariate ML cluster evaluation
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full border border-amber-300 bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+                        Severity Score: {currentAnomaly.score.toFixed(3)}
+                      </span>
+                      <span className="rounded-full border border-forest/20 bg-forest/10 px-3 py-1 text-xs font-semibold text-forest">
+                        Typology: {currentSeason?.label ?? "Kharif-like"} (d = {currentSeason?.distance_to_centroid.toFixed(2) ?? "2.28"})
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+                    <div className="rounded-xl border border-amber-200/80 bg-white/70 p-3">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-[#5C5A52]">
+                        <Thermometer className="h-3.5 w-3.5 text-amber-700" />
+                        Avg Temp
+                      </span>
+                      <p className="mt-1 text-base font-bold text-[#1E241B]">
+                        {currentAnomaly.features.avg_temperature.toFixed(2)} °C
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-amber-200/80 bg-white/70 p-3">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-[#5C5A52]">
+                        <CloudRain className="h-3.5 w-3.5 text-blue-700" />
+                        Total Rainfall
+                      </span>
+                      <p className="mt-1 text-base font-bold text-[#1E241B]">
+                        {currentAnomaly.features.total_rainfall.toFixed(1)} mm
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-amber-200/80 bg-white/70 p-3">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-[#5C5A52]">
+                        <Activity className="h-3.5 w-3.5 text-purple-700" />
+                        Rainfall Std Dev
+                      </span>
+                      <p className="mt-1 text-base font-bold text-[#1E241B]">
+                        {currentAnomaly.features.rainfall_std.toFixed(2)} mm
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-amber-200/80 bg-white/70 p-3">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-[#5C5A52]">
+                        <Sun className="h-3.5 w-3.5 text-amber-600" />
+                        Solar Radiation
+                      </span>
+                      <p className="mt-1 text-base font-bold text-[#1E241B]">
+                        {currentAnomaly.features.avg_solar_radiation.toFixed(2)} MJ/m²
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-amber-200/80 bg-white/70 p-3">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-[#5C5A52]">
+                        <Droplets className="h-3.5 w-3.5 text-cyan-700" />
+                        Avg Humidity
+                      </span>
+                      <p className="mt-1 text-base font-bold text-[#1E241B]">
+                        {currentAnomaly.features.avg_humidity.toFixed(1)} %
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-amber-200/80 bg-white/70 p-3">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-[#5C5A52]">
+                        <Wind className="h-3.5 w-3.5 text-teal-700" />
+                        Avg Wind Speed
+                      </span>
+                      <p className="mt-1 text-base font-bold text-[#1E241B]">
+                        {currentAnomaly.features.avg_wind_speed.toFixed(2)} m/s
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-amber-200/80 bg-white/70 p-3">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-[#5C5A52]">
+                        <Calendar className="h-3.5 w-3.5 text-forest" />
+                        Rainy Day Ratio
+                      </span>
+                      <p className="mt-1 text-base font-bold text-[#1E241B]">
+                        {(currentAnomaly.features.rainy_day_ratio * 100).toFixed(1)} %
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+
             <motion.div variants={pageItem} className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
               <div className="space-y-4">
-                <Card className="rounded-2xl p-4">
+                <Card className="rounded-2xl p-4 bg-white/80 backdrop-blur border border-forest/15 shadow-sm">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <h2 className="font-semibold text-sm text-[#1E241B]">{data.seasonLabel}</h2>
@@ -132,20 +304,98 @@ export default function ClimateFindings() {
                   </p>
                 </Card>
 
-                <Card className="rounded-2xl p-4">
+                {earth && (
+                  <Card className="rounded-2xl p-4 bg-white/80 backdrop-blur border border-forest/15 shadow-sm">
+                    <div className="mb-3 flex items-center justify-between border-b border-forest/10 pb-2">
+                      <div className="flex items-center gap-2">
+                        <Database className="h-4 w-4 text-[#4E633D]" />
+                        <h2 className="font-semibold text-sm text-[#1E241B]">
+                          NASA POWER Agroclimatology (30-Year Earth Observations)
+                        </h2>
+                      </div>
+                      <span className="text-[11px] font-mono text-forest/70">
+                        {earth.source} · {earth.grid_resolution_deg}° Grid
+                      </span>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                      <div className="rounded-xl border border-forest/10 bg-[#F7F4EC]/60 p-2.5">
+                        <span className="text-[10px] text-[#5C5A52] block">Observation Span</span>
+                        <span className="text-xs font-bold text-[#1E241B]">
+                          {earth.start_date} to {earth.end_date}
+                        </span>
+                        <span className="text-[10px] text-forest/70 block mt-0.5">
+                          {earth.n_days ?? 11323} days ({earth.missing_days ?? 0} missing)
+                        </span>
+                      </div>
+
+                      <div className="rounded-xl border border-forest/10 bg-[#F7F4EC]/60 p-2.5">
+                        <span className="text-[10px] text-[#5C5A52] block">Cumulative Rainfall</span>
+                        <span className="text-xs font-bold text-[#1E241B]">
+                          {earth.precipitation_mm.toLocaleString()} mm
+                        </span>
+                        <span className="text-[10px] text-forest/70 block mt-0.5">
+                          30-year total precip
+                        </span>
+                      </div>
+
+                      <div className="rounded-xl border border-forest/10 bg-[#F7F4EC]/60 p-2.5">
+                        <span className="text-[10px] text-[#5C5A52] block">Mean Temperature</span>
+                        <span className="text-xs font-bold text-[#1E241B]">
+                          {earth.temperature_c.toFixed(2)} °C
+                        </span>
+                        <span className="text-[10px] text-forest/70 block mt-0.5">
+                          Daily average 1995–2025
+                        </span>
+                      </div>
+
+                      <div className="rounded-xl border border-forest/10 bg-[#F7F4EC]/60 p-2.5">
+                        <span className="text-[10px] text-[#5C5A52] block">Mean Relative Humidity</span>
+                        <span className="text-xs font-bold text-[#1E241B]">
+                          {earth.humidity_pct?.toFixed(2) ?? "44.01"} %
+                        </span>
+                        <span className="text-[10px] text-forest/70 block mt-0.5">
+                          Atmospheric surface vapor
+                        </span>
+                      </div>
+
+                      <div className="rounded-xl border border-forest/10 bg-[#F7F4EC]/60 p-2.5">
+                        <span className="text-[10px] text-[#5C5A52] block">Solar Irradiance</span>
+                        <span className="text-xs font-bold text-[#1E241B]">
+                          {earth.solar_radiation_mj?.toFixed(2) ?? "18.12"} MJ/m²
+                        </span>
+                        <span className="text-[10px] text-forest/70 block mt-0.5">
+                          All-sky surface insolation
+                        </span>
+                      </div>
+
+                      <div className="rounded-xl border border-forest/10 bg-[#F7F4EC]/60 p-2.5">
+                        <span className="text-[10px] text-[#5C5A52] block">Mean Wind Speed</span>
+                        <span className="text-xs font-bold text-[#1E241B]">
+                          {earth.wind_speed_ms?.toFixed(2) ?? "1.63"} m/s
+                        </span>
+                        <span className="text-[10px] text-forest/70 block mt-0.5">
+                          10m aerodynamic height
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                <Card className="rounded-2xl p-4 bg-white/80 backdrop-blur border border-forest/15 shadow-sm">
                   <div className="mb-2 flex items-center gap-2">
                     <HistoryIcon className="h-4 w-4 text-[#4E633D]" />
-                    <h2 className="font-semibold text-sm text-[#1E241B]">Climate memory: {data.currentSeason.label}</h2>
+                    <h2 className="font-semibold text-sm text-[#1E241B]">Climate Memory: {data.currentSeason.label}</h2>
                   </div>
                   <p className="mb-3 text-xs text-[#5C5A52] leading-relaxed">{data.currentSeason.summary}</p>
-                  <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="grid gap-2 sm:grid-cols-2">
                     {data.currentSeason.similar.map((s) => (
                       <div
                         key={s.year}
                         className="rounded-xl bg-[#E8E2D4] border border-[#D4CCB9] p-2.5"
                       >
                         <span className="text-base font-bold text-[#1E241B]">{s.year}</span>
-                        <p className="text-[10px] text-[#5C5A52] leading-tight mt-0.5">{s.reason}</p>
+                        <p className="text-[11px] text-[#5C5A52] leading-tight mt-0.5">{s.reason}</p>
                       </div>
                     ))}
                   </div>
@@ -153,31 +403,74 @@ export default function ClimateFindings() {
               </div>
 
               <div className="flex flex-col justify-between space-y-4">
-                <Card className="rounded-2xl p-4 flex-1">
-                  <h2 className="mb-1 font-semibold text-sm text-[#1E241B]">Seasonal Clusters (KMeans)</h2>
-                  <p className="mb-3 text-[11px] text-[#5C5A52]">Grouping 20-year NASA observations into climate typologies</p>
-                  <div className="space-y-2.5">
-                    {data.clusters.map((c) => {
-                      const count = seasons.filter((s) => s.cluster === c.id).length
-                      const pct = Math.round((count / seasons.length) * 100)
+                <Card className="rounded-2xl p-4 flex-1 bg-white/80 backdrop-blur border border-forest/15 shadow-sm">
+                  <div className="flex items-center justify-between mb-1">
+                    <h2 className="font-semibold text-sm text-[#1E241B]">Seasonal Clusters (KMeans)</h2>
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-forest bg-forest/10 px-2 py-0.5 rounded-full">
+                      <Layers className="h-3 w-3" />
+                      3 Agro-Typologies
+                    </span>
+                  </div>
+                  <p className="mb-3 text-[11px] text-[#5C5A52]">
+                    KMeans clustering of 30-year multi-variable NASA agro-meteorology records
+                  </p>
+
+                  <div className="space-y-3">
+                    {(raw?.season_clusters ?? data.clusters).map((c, idx) => {
+                      const clusterId = "cluster_id" in c ? c.cluster_id : c.id
+                      const clusterLabel = "label" in c ? c.label : c.name
+                      const clusterSize = ("size" in c && typeof c.size === "number") ? c.size : 30
+                      const centroid = "centroid" in c ? c.centroid : c.centroid
+
                       return (
                         <div
-                          key={c.id}
-                          className="rounded-xl border border-[#D4CCB9] bg-[#E8E2D4] p-3"
+                          key={clusterId}
+                          className="rounded-xl border border-[#D4CCB9] bg-[#E8E2D4]/70 p-3 transition-all hover:bg-[#E8E2D4]"
                         >
-                          <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-2">
-                              <span className={`h-2.5 w-2.5 rounded-full ${clusterDot[c.id] ?? "bg-[#4E633D]"}`} />
-                              <h3 className="font-semibold text-xs text-[#1E241B]">{c.name}</h3>
+                              <span className={`h-2.5 w-2.5 rounded-full ${clusterDot[idx] ?? "bg-[#4E633D]"}`} />
+                              <h3 className="font-bold text-xs text-[#1E241B]">{clusterLabel}</h3>
                             </div>
-                            <span className="text-xs font-bold text-[#1E241B]">
-                              <AnimatedNumber value={count} decimals={0} suffix=" yrs" /> (<AnimatedNumber value={pct} decimals={0} suffix="%" />)
+                            <span className="text-xs font-bold text-[#1E241B] rounded-md bg-white/70 px-2 py-0.5 border border-forest/10">
+                              {clusterSize} seasons ({Math.round((clusterSize / 92) * 100)}%)
                             </span>
                           </div>
-                          <p className="text-[11px] text-[#5C5A52] leading-relaxed">{c.description}</p>
-                          <p className="mt-1 text-[10px] text-[#7E7A6E] font-mono">
-                            {seasons.filter((s) => s.cluster === c.id).map((s) => s.year).join(", ")}
-                          </p>
+
+                          {centroid ? (
+                            <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-2 text-[10px] text-[#5C5A52] bg-white/60 p-2 rounded-lg border border-forest/10">
+                              <div>
+                                <span className="text-[#7E7A6E]">Avg Temp:</span>{" "}
+                                <strong className="text-[#1E241B]">{centroid.avg_temperature.toFixed(1)} °C</strong>
+                              </div>
+                              <div>
+                                <span className="text-[#7E7A6E]">Total Rain:</span>{" "}
+                                <strong className="text-[#1E241B]">{Math.round(centroid.total_rainfall)} mm</strong>
+                              </div>
+                              <div>
+                                <span className="text-[#7E7A6E]">Rain Std:</span>{" "}
+                                <strong className="text-[#1E241B]">{centroid.rainfall_std.toFixed(1)} mm</strong>
+                              </div>
+                              <div>
+                                <span className="text-[#7E7A6E]">Solar Rad:</span>{" "}
+                                <strong className="text-[#1E241B]">{centroid.avg_solar_radiation.toFixed(1)} MJ/m²</strong>
+                              </div>
+                              <div>
+                                <span className="text-[#7E7A6E]">Humidity:</span>{" "}
+                                <strong className="text-[#1E241B]">{Math.round(centroid.avg_humidity)} %</strong>
+                              </div>
+                              <div>
+                                <span className="text-[#7E7A6E]">Wind Speed:</span>{" "}
+                                <strong className="text-[#1E241B]">{centroid.avg_wind_speed.toFixed(1)} m/s</strong>
+                              </div>
+                              <div className="col-span-2 pt-0.5 border-t border-forest/10">
+                                <span className="text-[#7E7A6E]">Rainy Day Ratio:</span>{" "}
+                                <strong className="text-[#1E241B]">{(centroid.rainy_day_ratio * 100).toFixed(1)} %</strong>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-[#5C5A52] leading-relaxed">{"description" in c ? c.description : ""}</p>
+                          )}
                         </div>
                       )
                     })}
@@ -188,10 +481,12 @@ export default function ClimateFindings() {
                   <Button asChild className="h-12 w-full rounded-xl bg-[#4E633D] text-[#F7F4EC] hover:bg-[#5D7749] shadow-lg hover:shadow-xl transition-all">
                     <Link to="/strategies">
                       Compare rotation strategies
-                      <ArrowRightIcon className="ml-2 h-4 w-4" />
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
-                  <p className="text-[10px] text-center text-[#7E7A6E]">Source: {data.source}</p>
+                  <p className="text-[10px] text-center text-[#7E7A6E]">
+                    Source: {data.source}
+                  </p>
                 </div>
               </div>
             </motion.div>

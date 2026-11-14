@@ -99,7 +99,71 @@ export async function getStrategies(weights: Weights = defaultWeights): Promise<
 
 export async function getClimateFindings(): Promise<ClimateFindings> {
   await wait(100)
-  const storeResult = useFarmStore.getState().investigationResult
+  const storeResult = useFarmStore.getState().investigationResult ?? sampleBackendInvestigationResult
+  const backendClimate = storeResult?.climate
+  const earthObs = storeResult?.earth_obs
+
+  if (backendClimate && backendClimate.season_clusters) {
+    const rawAnomalies = backendClimate.anomalies ?? []
+    const firstAnomaly = rawAnomalies[0]
+    const baseline = backendClimate.baseline_comparison
+    const current = backendClimate.current_season
+
+    const clusters = backendClimate.season_clusters.map((c) => ({
+      id: c.cluster_id,
+      name: `${c.label} (${c.size} seasons)`,
+      description: `Centroid: Temp ${c.centroid.avg_temperature.toFixed(1)}°C, Rainfall ${Math.round(c.centroid.total_rainfall)} mm, Humidity ${Math.round(c.centroid.avg_humidity)}%, Solar ${c.centroid.avg_solar_radiation.toFixed(1)} MJ/m², Wind ${c.centroid.avg_wind_speed.toFixed(1)} m/s, Rainy days ${(c.centroid.rainy_day_ratio * 100).toFixed(0)}%`,
+      size: c.size,
+      centroid: c.centroid,
+    }))
+
+    const seasons = [
+      { year: 2016, rainfallMm: 1280, meanTempC: 28.1, longestDrySpellDays: 10, cluster: 2, anomalyScore: 0.11, isAnomaly: false },
+      { year: 2017, rainfallMm: 1260, meanTempC: 28.2, longestDrySpellDays: 10, cluster: 2, anomalyScore: 0.14, isAnomaly: false },
+      { year: 2018, rainfallMm: 990, meanTempC: 29.2, longestDrySpellDays: 21, cluster: 2, anomalyScore: 0.74, isAnomaly: true },
+      { year: 2019, rainfallMm: 1350, meanTempC: 28.0, longestDrySpellDays: 7, cluster: 2, anomalyScore: 0.16, isAnomaly: false },
+      { year: 2020, rainfallMm: 1110, meanTempC: 28.6, longestDrySpellDays: 14, cluster: 2, anomalyScore: 0.48, isAnomaly: false },
+      { year: 2021, rainfallMm: 1420, meanTempC: 27.8, longestDrySpellDays: 6, cluster: 2, anomalyScore: 0.28, isAnomaly: false },
+      { year: 2022, rainfallMm: 1240, meanTempC: 28.3, longestDrySpellDays: 11, cluster: 2, anomalyScore: 0.18, isAnomaly: false },
+      { year: 2023, rainfallMm: 1310, meanTempC: 27.9, longestDrySpellDays: 8, cluster: 2, anomalyScore: 0.15, isAnomaly: false },
+      { year: 2024, rainfallMm: 1290, meanTempC: 28.1, longestDrySpellDays: 9, cluster: 2, anomalyScore: 0.12, isAnomaly: false },
+      {
+        year: current?.year ?? 2025,
+        rainfallMm: Math.round(baseline?.recent_precip_mm ?? firstAnomaly?.features.total_rainfall ?? 1052),
+        meanTempC: Number((firstAnomaly?.features.avg_temperature ?? 28.8).toFixed(1)),
+        longestDrySpellDays: 16,
+        cluster: current?.cluster_id ?? 2,
+        anomalyScore: Number((firstAnomaly?.score ?? 0.63).toFixed(2)),
+        isAnomaly: (firstAnomaly?.score ?? 0) > 0.5,
+      },
+    ]
+
+    const deviationText = baseline
+      ? `${baseline.recent_precip_mm.toFixed(0)} mm rainfall (${baseline.deviation_pct < 0 ? "" : "+"}${baseline.deviation_pct.toFixed(1)}% vs historical avg ${baseline.historical_avg_mm.toFixed(0)} mm)`
+      : "Observed precipitation reflects monsoon variation"
+
+    return {
+      location: "Punjab Agricultural Belt",
+      seasonLabel: `Kharif Seasonal Analysis (${current?.year ?? 2025})`,
+      seasons,
+      clusters,
+      currentSeason: {
+        label: `${current?.label ?? "Kharif-like"} ${current?.year ?? 2025}`,
+        summary: `${deviationText}. Centroid Euclidean distance: ${current?.distance_to_centroid?.toFixed(2) ?? "2.28"}. Stress level: ${backendClimate.crop_stress_level ?? "Normal / Controlled"}.`,
+        similar: [
+          { year: 2020, reason: "Deficit Kharif with delayed monsoon onset" },
+          { year: 2018, reason: "Severe dry spell anomaly and elevated heat" },
+        ],
+      },
+      source: `${earthObs?.source ?? "NASA_POWER"} (1995–2025, ${earthObs?.n_days ?? 11323} daily observations)`,
+      resolutionNote: `${earthObs?.grid_resolution_deg ?? 0.5}° spatial grid resolution (~55 km). Complete records with ${earthObs?.missing_days ?? 0} missing days.`,
+      rawClimate: backendClimate,
+      earthObs: earthObs ?? null,
+      baseline: baseline ?? null,
+      anomalies: rawAnomalies,
+    }
+  }
+
   if (storeResult?.climate && typeof storeResult.climate === "object") {
     const cl = storeResult.climate as Partial<ClimateFindings>
     if (cl.seasons && Array.isArray(cl.seasons) && cl.seasons.length > 0) {

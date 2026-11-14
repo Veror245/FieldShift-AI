@@ -1,3 +1,69 @@
+export type BackendSeasonCluster = {
+  cluster_id: number
+  label: string
+  size: number
+  centroid: {
+    avg_temperature: number
+    total_rainfall: number
+    rainfall_std: number
+    avg_solar_radiation: number
+    avg_humidity: number
+    avg_wind_speed: number
+    rainy_day_ratio: number
+  }
+  features: string[]
+}
+
+export type BackendCurrentSeason = {
+  year: number
+  cluster_id: number
+  label: string
+  distance_to_centroid: number
+}
+
+export type BackendClimateAnomaly = {
+  date_range: string
+  score: number
+  features: {
+    avg_temperature: number
+    total_rainfall: number
+    rainfall_std: number
+    avg_solar_radiation: number
+    avg_humidity: number
+    avg_wind_speed: number
+    rainy_day_ratio: number
+  }
+}
+
+export type BackendBaselineComparison = {
+  recent_precip_mm: number
+  historical_avg_mm: number
+  deviation_pct: number
+}
+
+export type BackendClimateData = {
+  season_clusters: BackendSeasonCluster[]
+  current_season: BackendCurrentSeason
+  anomalies: BackendClimateAnomaly[]
+  baseline_comparison: BackendBaselineComparison
+  crop_stress_level?: string | null
+}
+
+export type BackendEarthObs = {
+  source: string
+  grid_resolution_deg: number
+  fetched_at?: string
+  missing_days?: number
+  start_date: string
+  end_date: string
+  n_days?: number
+  temperature_c: number
+  humidity_pct?: number
+  wind_speed_ms?: number
+  precipitation_mm: number
+  solar_radiation_mj?: number
+}
+
 export type BackendInvestigationResult = {
   investigation_id: string
   status?: "complete" | "pending" | "running" | "failed"
@@ -55,15 +121,7 @@ export type BackendInvestigationResult = {
     planting_window_conflicts?: string[]
     expert_validation_needed?: string[]
   } | null
-  earth_obs?: {
-    source: string
-    grid_resolution_deg: number
-    temperature_c: number
-    precipitation_mm: number
-    missing_days?: number
-    start_date: string
-    end_date: string
-  } | null
-  climate?: unknown
+  earth_obs?: BackendEarthObs | null
+  climate?: BackendClimateData | null
   created_at?: string
 }
