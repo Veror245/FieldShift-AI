@@ -40,7 +40,7 @@ def get_llm() -> BaseChatModel:
     if provider == "google":
         from langchain_google_genai import ChatGoogleGenerativeAI
         return ChatGoogleGenerativeAI(
-            model="gemini-3.8-flash", # type: ignore
+            model="gemma-4-31b-it", # type: ignore
             temperature=0.3, # type: ignore
             api_key=os.environ["GOOGLE_API_KEY"], # type: ignore
             max_retries=3,
