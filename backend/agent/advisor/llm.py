@@ -10,12 +10,22 @@ def get_llm() -> BaseChatModel:
     if provider == "freellm":
         from langchain_openai import ChatOpenAI
         return ChatOpenAI(
-            model="gemma-4-31b-it", # type: ignore
+            model="deepseek/deepseek-v4-flash-0731free:free", # type: ignore
             temperature=0.3, # type: ignore
             api_key=os.environ["FREE_KEY"], # type: ignore
-            max_retries=3,
-            timeout=45,
+            max_retries=3, # type: ignore
+            timeout=10,
             base_url="http://localhost:3001/v1" # type: ignore
+        )
+    
+    if provider == "groq":
+        from langchain_groq import ChatGroq
+        return ChatGroq(
+            model="qwen/qwen3.8-27b", # type: ignore
+            temperature=0.3, # type: ignore
+            api_key=os.environ["GROQ_API_KEY"], # type: ignore
+            max_retries=3, # type: ignore
+            timeout=10,
         )
 
     if provider == "ollama":
@@ -30,7 +40,7 @@ def get_llm() -> BaseChatModel:
     if provider == "google":
         from langchain_google_genai import ChatGoogleGenerativeAI
         return ChatGoogleGenerativeAI(
-            model="gemma-4-31b-it", # type: ignore
+            model="gemini-3.8-flash", # type: ignore
             temperature=0.3, # type: ignore
             api_key=os.environ["GOOGLE_API_KEY"], # type: ignore
             max_retries=3,

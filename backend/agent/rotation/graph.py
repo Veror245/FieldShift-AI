@@ -388,6 +388,7 @@ def _seq_signature(seq: list[dict]) -> tuple:
 
 
 def rotation_node(state: RotationState) -> dict:
+    print(f"Entereted Rotation")
     task_id = f"rotation:{uuid4()}"
     crops = load_crops()
     agronomy = state.get("agronomy") or {}

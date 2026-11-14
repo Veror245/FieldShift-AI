@@ -44,6 +44,7 @@ def current_season(today: date | None = None) -> tuple[int, str]:
 
 
 async def climate_node(state: ClimateState) -> dict:
+    print(f"Entereted Climate")
     task_id = f"climate:{uuid4()}"
 
     # --- 1. Read earth_obs output ---

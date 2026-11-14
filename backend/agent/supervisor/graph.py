@@ -6,6 +6,8 @@ MAX_REVISIONS = 3
 
 def supervisor_node(state: InvestigationState) -> dict:
     
+    print(f"Entereted Supervisor")
+    
     def advance(**updates) -> dict:
         return {**updates, "step_count": state.get("step_count", 0) + 1}
     
@@ -33,6 +35,14 @@ def supervisor_node(state: InvestigationState) -> dict:
         return advance(next_action=[AgentName.ROTATION], current_agents=[AgentName.ROTATION])
     
     if state.get("rotation") and not state.get("advisor"):
+        failed = [t for t in state.get("tasks", [])
+                if t.agent == "advisor" and t.status == "failed"]
+        if failed:
+            return advance(
+                next_action=["await_farmer"],
+                current_agents=[],
+                missing_info=[f"Advisor unavailable — strategies ready without explanations. Error: {failed[-1].error[:200]}"], # type: ignore
+            )
         return advance(next_action=[AgentName.ADVISOR], current_agents=[AgentName.ADVISOR])
     
     if state.get("advisor"):

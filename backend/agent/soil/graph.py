@@ -96,6 +96,7 @@ def _expert_validation_flags(soil, assessment):
 
 
 def soil_node(state: SoilState) -> dict:
+    print(f"Entereted Soil")
     task_id = f"soil:{uuid4()}"
     crops = load_crops()
     soil = state.get("soil_inputs") or {}
