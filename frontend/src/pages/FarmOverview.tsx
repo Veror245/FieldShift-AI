@@ -27,7 +27,7 @@ const waterLabel: Record<FarmProfile["water"], string> = {
 }
 
 export default function FarmOverview() {
-  const { polygon, hectares, profile, selectedStrategyId, weights, resetFarm } = useFarmStore()
+  const { polygon, hectares, profile, selectedStrategyId, weights, resetFarm, investigationResult } = useFarmStore()
   const climate = useQuery({ queryKey: ["climate"], queryFn: getClimateFindings })
   const alerts = useQuery({ queryKey: ["watch-alerts"], queryFn: getWatchAlerts })
     const strategies = useQuery({
@@ -57,8 +57,8 @@ export default function FarmOverview() {
     {
       label: "Run the investigation",
       subtitle: "Autonomous agents",
-      to: "/investigation",
-      done: false,
+      to: "/field",
+      done: Boolean(investigationResult),
       Icon: InvestigationIcon,
     },
     {

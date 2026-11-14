@@ -1,11 +1,13 @@
 import { useState, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
+import { AnimatePresence, motion } from "framer-motion"
 import { toast } from "sonner"
 import { MapPin } from "lucide-react"
 import FieldMap from "@/maps/FieldMap"
 import FarmForm from "@/components/farm/FarmForm"
 import GeoJsonUpload from "@/components/farm/GeoJsonUpload"
+import ThinkingOrb from "@/components/common/ThinkingOrb"
 import { Card } from "@/components/ui/card"
 import { PageHeader } from "@/components/common/PageHeader"
 import { buildInvestigationRequest } from "@/lib/investigationRequest"
@@ -18,6 +20,33 @@ import {
   type GeocodedAddress,
 } from "@/utils/reverseGeocode"
 import type { FarmProfile } from "@/types/farm"
+
+const investigationStages = [
+  {
+    step: 1,
+    title: "Scanning Field Boundary & Soil Profile",
+    detail: "Processing GPS coordinates and analyzing regional soil texture.",
+    orbState: "working" as const,
+  },
+  {
+    step: 2,
+    title: "Consulting NASA POWER Climatology",
+    detail: "Fetching 30-year agro-climate observations and precipitation patterns.",
+    orbState: "searching" as const,
+  },
+  {
+    step: 3,
+    title: "Evaluating Agronomic Suitability",
+    detail: "Cross-referencing crop compatibility, disease breaks, and nitrogen balance.",
+    orbState: "solving" as const,
+  },
+  {
+    step: 4,
+    title: "Synthesizing Pareto-Optimal Rotations",
+    detail: "Optimizing 8-dimensional multi-objective crop rotation strategies.",
+    orbState: "solving" as const,
+  },
+]
 
 export default function FieldExplorer() {
   const navigate = useNavigate()
@@ -33,6 +62,8 @@ export default function FieldExplorer() {
     setInvestigationResult,
   } = useFarmStore()
   const [submitting, setSubmitting] = useState(false)
+  const [investigating, setInvestigating] = useState(false)
+  const [investigationStep, setInvestigationStep] = useState(0)
   const [gpsLocation, setGpsLocation] = useState<{
     lat: number
     lng: number
@@ -77,19 +108,35 @@ export default function FieldExplorer() {
       return
     }
     setSubmitting(true)
+    setInvestigating(true)
+    setInvestigationStep(0)
     try {
       const request = buildInvestigationRequest({
         farmId: ensureFarmId(),
         polygon,
         profile: values,
       })
-      const { investigationId, result } = await startInvestigation(request)
+      const investigationPromise = startInvestigation(request)
+      const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+      await wait(850)
+      setInvestigationStep(1)
+      await wait(950)
+      setInvestigationStep(2)
+      await wait(950)
+      setInvestigationStep(3)
+
+      const { investigationId, result } = await investigationPromise
       setProfile(values)
       setInvestigationId(investigationId)
       if (result) setInvestigationResult(result)
-      toast.success("Farm details saved. Starting the investigation.")
-      navigate("/investigation")
+
+      await wait(650)
+      setInvestigating(false)
+      await wait(350)
+      navigate("/strategies")
     } catch (e) {
+      setInvestigating(false)
       toast.error(e instanceof Error ? e.message : "Could not start the investigation.")
     } finally {
       setSubmitting(false)
@@ -271,6 +318,70 @@ export default function FieldExplorer() {
           </Card>
         </div>
       </div>
+
+      <AnimatePresence>
+        {investigating && (
+          <motion.div
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(16px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            transition={{ duration: 0.45, ease: "easeInOut" }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-forest-900/10 dark:bg-forest-950/20 backdrop-blur-xl"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 14 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: -10 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="w-full max-w-md rounded-3xl border border-white/50 dark:border-forest/30 bg-white/75 dark:bg-[#152019]/80 p-7 shadow-2xl backdrop-blur-2xl text-center space-y-5"
+            >
+              <div className="flex items-center justify-center">
+                <ThinkingOrb
+                  state={investigationStages[investigationStep]?.orbState ?? "working"}
+                  size={76}
+                  speed={1.1}
+                  theme="auto"
+                  className="mx-auto drop-shadow-md"
+                  aria-label="Agent working"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="inline-flex items-center gap-2 rounded-full border border-forest/20 bg-forest/5 px-3 py-1 text-xs font-semibold text-forest dark:text-forest-300">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-forest opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-forest" />
+                  </span>
+                  Step {investigationStep + 1} of {investigationStages.length}
+                </div>
+                <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">
+                  {investigationStages[investigationStep]?.title}
+                </h3>
+                <p className="text-xs text-stone-600 dark:text-stone-300">
+                  {investigationStages[investigationStep]?.detail}
+                </p>
+              </div>
+
+              <div className="space-y-1.5 pt-1">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-stone-200/80 dark:bg-stone-800/80">
+                  <motion.div
+                    className="h-full rounded-full bg-forest"
+                    initial={{ width: "15%" }}
+                    animate={{
+                      width: `${((investigationStep + 1) / investigationStages.length) * 100}%`,
+                    }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                  />
+                </div>
+                <div className="flex justify-between text-[11px] font-medium text-stone-500 dark:text-stone-400">
+                  <span>Autonomous agent workflow</span>
+                  <span>{Math.round(((investigationStep + 1) / investigationStages.length) * 100)}%</span>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }
