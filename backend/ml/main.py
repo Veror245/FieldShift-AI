@@ -4,16 +4,16 @@ import numpy as np
 import joblib
 from pathlib import Path
 
-from ml.pipeline.clustering import (
+from .pipeline.clustering import (
     predict_climate_cluster,
     FEATURE_COLUMNS
 )
 
-from ml.pipeline.anomaly_detection import (
+from .pipeline.anomaly_detection import (
     predict_climate_anomalies
 )
 
-from ml.pipeline.climate_memory import (
+from .pipeline.climate_memory import (
     load_climate_memory,
     get_historical_baseline,
     get_similar_seasons,
@@ -280,3 +280,7 @@ def get_climate_analysis(climate_data):
 
     # Step 9: Return the final result
     return response
+
+df = pd.read_csv("backend/data/earth_obs/test-5b725b63-finaltrain.csv")
+resp = get_climate_analysis(df)
+print(resp)
