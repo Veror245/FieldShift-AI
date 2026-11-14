@@ -1,3 +1,4 @@
+import re
 from uuid import uuid4
 
 from .state import RotationState
@@ -49,17 +50,65 @@ def _pick_for_slot(pool: dict, season: str, last_family: str | None,
     return {"crop_id": cid, "season": season, "year": year}
 
 
-def _build_sequence(pool: dict, sort_key) -> list[dict]:
-    seq = []
+def _build_sequence(pool: dict, sort_key, required_crops: list[str] | None = None) -> list[dict]:
+    """
+    Build a 4-slot rotation (2 years × [kharif, rabi]) that includes all
+    required_crops if possible.
+
+    Strategy:
+      1. Reserve slots for required crops (must appear at least once).
+      2. Fill remaining slots using sort_key, respecting family diversity.
+      3. If any slot cannot be filled, return [] (caller treats as "generator failed").
+
+    Returns [] if:
+      - A required crop is not in pool (can't be satisfied)
+      - A required crop has no valid season match in the 4 slots
+      - Any non-required slot has no valid crop in the pool
+    """
+    
+    required = list(required_crops or [])
+    slots = [(year, season) for year in [START_YEAR, START_YEAR + 1] for season in SEASONS]
+    seq: list[dict | None] = [None] * len(slots)
+
+    # ─── Pass 1: place required crops ─────────────────────────────────────
+    for crop_id in required:
+        crop = pool.get(crop_id)
+        if crop is None:
+            # Required crop is not viable in this pool — generator cannot
+            # honor the constraint. Caller should surface this as a hard-fail.
+            return []
+
+        placed = False
+        for i, (year, season) in enumerate(slots):
+            if seq[i] is not None:
+                continue
+            if season not in crop.get("planting_window", {}):
+                continue
+            seq[i] = {"crop_id": crop_id, "season": season, "year": year}
+            placed = True
+            break
+
+        if not placed:
+            # Required crop has no compatible slot — cannot build sequence
+            return []
+
+    # ─── Pass 2: fill remaining slots with sort_key ───────────────────────
     last_family = None
-    for year in [START_YEAR, START_YEAR + 1]:
-        for season in SEASONS:
-            entry = _pick_for_slot(pool, season, last_family, sort_key, year)
-            if entry is None:
-                return []
-            seq.append(entry)
-            last_family = pool[entry["crop_id"]]["family"]
-    return seq
+    for i, (year, season) in enumerate(slots):
+        if seq[i] is not None:
+            last_family = pool[seq[i]["crop_id"]]["family"] # type: ignore
+            continue
+
+        # Skip crops already placed as required (avoid same crop twice)
+        candidates = {cid: c for cid, c in pool.items() if cid not in required}
+        entry = _pick_for_slot(candidates, season, last_family, sort_key, year)
+        if entry is None:
+            return []
+
+        seq[i] = entry
+        last_family = pool[entry["crop_id"]]["family"]
+
+    return [s for s in seq if s is not None]
 
 def generate_existing(current_rotation: list[dict]) -> list[dict]:
     """Copy farmer's current rotation, extended to 2 years."""
@@ -88,20 +137,20 @@ def generate_existing(current_rotation: list[dict]) -> list[dict]:
     return seq
 
 
-def generate_soil_restoration(pool: dict) -> list[dict]:
+def generate_soil_restoration(pool: dict, required_crops=None) -> list[dict]:
     
     def key(c):
         n_fix = 0 if c.get("nitrogen_fixing") else 1
         residue = -RESIDUE_SCORE.get(c.get("residue_contribution") or "low", 0.3)
         cover = -COVER_SCORE.get(c.get("ground_cover") or "low", 0.3)
         return (n_fix, residue + cover)
-    return _build_sequence(pool, key)
+    return _build_sequence(pool, key, required_crops)
 
 
-def generate_climate_resilience(pool: dict, climate=None) -> list[dict]:
+def generate_climate_resilience(pool: dict, climate=None, required_crops=None) -> list[dict]:
   
     if not climate or climate.get("stub"):
-        return _build_sequence(pool, lambda c: sum(c["water_use_mm"]) / 2)
+        return _build_sequence(pool, lambda c: sum(c["water_use_mm"]) / 2, required_crops)
 
     label = climate["current_season"]["label"]
     deviation = climate["baseline_comparison"]["deviation_pct"]
@@ -135,11 +184,10 @@ def generate_climate_resilience(pool: dict, climate=None) -> list[dict]:
             -FORAGE_SCORE.get(c.get("forage_potential") or "none", 0.0),    # ← add
             sum(c.get("water_use_mm", [500, 800])) / 2,
         )
+    return _build_sequence(pool, key, required_crops)
 
-    return _build_sequence(pool, key)
 
-
-def generate_farmer_prioritized(pool: dict, priorities: dict) -> list[dict]:
+def generate_farmer_prioritized(pool: dict, priorities: dict, required_crops=None) -> list[dict]:
    
     def key(c):
         n_fix = 1.0 if c.get("nitrogen_fixing") else 0.0
@@ -160,7 +208,7 @@ def generate_farmer_prioritized(pool: dict, priorities: dict) -> list[dict]:
             priorities.get("economic_potential", 0.5) * econ_score
         )
         return -score   
-    return _build_sequence(pool, key)
+    return _build_sequence(pool, key, required_crops)
 
 def score_water_efficiency(seq: list[dict], crops: dict) -> float:
     total = 0.0
@@ -301,13 +349,29 @@ def score_feasibility(seq: list[dict], crops: dict,
 
 
 def check_constraints(seq: list[dict],
-                      constraints: dict, agronomy = None) -> tuple[bool, list[str]]:
+                      constraints: dict, crops, agronomy = None) -> tuple[bool, list[str]]:
     if not seq:
         return False, ["empty sequence"]
 
     reasons = []
     forbidden = set(constraints.get("forbidden_crops", []))
     required = set(constraints.get("required_crops", []))
+    max_water = constraints.get("max_water_requirement")
+    
+    if max_water:
+        levels = {"low": 0, "medium": 1, "high": 2}
+        max_level = levels[max_water]
+        for s in seq:
+            crop = crops.get(s["crop_id"])
+            if not crop:
+                continue
+            crop_level = levels.get(crop.get("water_requirement", "medium"), 1)
+            if crop_level > max_level:
+                reasons.append(
+                    f"uses {crop['water_requirement']}-water crop "
+                    f"{s['crop_id']} (max allowed: {max_water})"
+                )
+                break
     used = {s["crop_id"] for s in seq}
 
     if forbidden & used:
@@ -355,7 +419,7 @@ def _normalize_weights(priorities: dict) -> dict:
 def _build_strategy(sid: str, label: str, seq: list[dict],
                     crops: dict, earth_obs: dict | None, climate,
                     constraints: dict, priorities: dict, agronomy: dict | None = None) -> dict:
-    passed, reasons = check_constraints(seq, constraints, agronomy)
+    passed, reasons = check_constraints(seq, constraints, crops, agronomy)
     scores = {
         "water_efficiency":      score_water_efficiency(seq, crops),
         "climate_compatibility": score_climate_compatibility(seq, crops, earth_obs, climate),
@@ -397,8 +461,14 @@ def rotation_node(state: RotationState) -> dict:
     constraints = state.get("constraints") or {}
     earth_obs = state.get("earth_obs")
     climate = state.get("climate")
+    required = constraints.get("required_crops") or []
 
     viable = build_viable_pool(agronomy, crops)
+    
+    for cid in required:
+        if cid not in viable and cid in crops:
+            viable[cid] = crops[cid]
+    
     if not viable:
         return {
             "rotation": {"strategies": [], "pareto_front": [], "recommended_order": []},
@@ -409,9 +479,9 @@ def rotation_node(state: RotationState) -> dict:
     # Generate 4 candidate sequences
     sequences = [
         ("strategy_a", "existing",           generate_existing(current)),
-        ("strategy_b", "soil_restoration",   generate_soil_restoration(viable)),
-        ("strategy_c", "climate_resilience", generate_climate_resilience(viable, climate)),
-        ("strategy_d", "farmer_prioritized", generate_farmer_prioritized(viable, priorities)),
+        ("strategy_b", "soil_restoration",   generate_soil_restoration(viable, required)),
+        ("strategy_c", "climate_resilience", generate_climate_resilience(viable, climate, required)),
+        ("strategy_d", "farmer_prioritized", generate_farmer_prioritized(viable, priorities, required)),
     ]
 
     # Build + score strategies
