@@ -4,6 +4,7 @@ import type { FieldPolygon } from "@/types/geojson"
 import type { FarmProfile } from "@/types/farm"
 import type { BackendInvestigationResult } from "@/types/investigation"
 import { defaultWeights, type Weights } from "@/lib/scoring"
+import { sampleBackendInvestigationResult } from "@/mocks/mockInvestigationResult"
 
 const newId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -22,6 +23,7 @@ type FarmState = {
   profile: FarmProfile | null
   selectedStrategyId: string | null
   weights: Weights
+  investigationResult: BackendInvestigationResult | null
   ensureFarmId: () => string
   setInvestigationId: (id: string | null) => void
   setInvestigationResult: (result: BackendInvestigationResult | null) => void
@@ -29,6 +31,7 @@ type FarmState = {
   setProfile: (profile: FarmProfile) => void
   selectStrategy: (id: string | null) => void
   setWeights: (weights: Weights) => void
+  setInvestigationResult: (res: BackendInvestigationResult | null) => void
   resetFarm: () => void
 }
 
@@ -43,6 +46,7 @@ export const useFarmStore = create<FarmState>()(
       profile: null,
       selectedStrategyId: null,
       weights: defaultWeights,
+      investigationResult: sampleBackendInvestigationResult,
       ensureFarmId: () => {
         const existing = get().farmId
         if (existing) return existing
@@ -56,6 +60,7 @@ export const useFarmStore = create<FarmState>()(
       setProfile: (profile) => set({ profile }),
       selectStrategy: (id) => set({ selectedStrategyId: id }),
       setWeights: (weights) => set({ weights }),
+      setInvestigationResult: (res) => set({ investigationResult: res }),
       resetFarm: () =>
         set({
           farmId: null,
@@ -66,6 +71,7 @@ export const useFarmStore = create<FarmState>()(
           profile: null,
           selectedStrategyId: null,
           weights: defaultWeights,
+          investigationResult: sampleBackendInvestigationResult,
         }),
     }),
     { name: "fieldshift-farm-v2" }

@@ -98,13 +98,44 @@ def generate_soil_restoration(pool: dict) -> list[dict]:
     return _build_sequence(pool, key)
 
 
-def generate_climate_resilience(pool: dict) -> list[dict]:
+def generate_climate_resilience(pool: dict, climate=None) -> list[dict]:
   
-    def key(c):
-        water_mid = sum(c.get("water_use_mm", [500, 800])) / 2
-        lo, hi = c.get("temp_range_c", [15, 30])
-        temp_width = hi - lo
-        return (water_mid, -temp_width)
+    if not climate or climate.get("stub"):
+        return _build_sequence(pool, lambda c: sum(c["water_use_mm"]) / 2)
+
+    label = climate["current_season"]["label"]
+    deviation = climate["baseline_comparison"]["deviation_pct"]
+
+
+    FORAGE_SCORE = {"none": 0.0, "low": 0.3, "medium": 0.6, "high": 1.0}
+    
+    if label == "Zaid-like" or deviation < -15:
+        # Hot + dry → strict low-water priority
+        key = lambda c: (
+            {"low": 0, "medium": 1, "high": 2}.get(
+                c.get("water_requirement", "medium"), 1),
+            sum(c.get("water_use_mm", [500, 800])) / 2,
+        )
+
+    elif label == "Rabi-like":
+        # Cool + dry → medium water ideal, high residue protects topsoil
+        key = lambda c: (
+            {"medium": 0, "low": 1, "high": 2}.get(
+                c.get("water_requirement", "medium"), 1),
+            -RESIDUE_SCORE.get(c.get("residue_contribution") or "low", 0.3),
+            sum(c.get("water_use_mm", [500, 800])) / 2,
+        )
+
+    else:
+        # Kharif-like (wet monsoon) or deviation > +15 →
+        # Can afford water, prioritize heat tolerance + soil building
+        key = lambda c: (
+            -(c.get("temp_range_c", [15, 30])[1]),
+            -RESIDUE_SCORE.get(c.get("residue_contribution") or "low", 0.3),
+            -FORAGE_SCORE.get(c.get("forage_potential") or "none", 0.0),    # ← add
+            sum(c.get("water_use_mm", [500, 800])) / 2,
+        )
+
     return _build_sequence(pool, key)
 
 
@@ -143,22 +174,57 @@ def score_water_efficiency(seq: list[dict], crops: dict) -> float:
 
 
 def score_climate_compatibility(seq: list[dict], crops: dict,
-                                earth_obs: dict | None) -> float:
-    if not earth_obs:
+                                earth_obs: dict | None, climate) -> float:
+    if not climate or climate.get("stub"):
+        if not earth_obs:
+            return 0.5
+        obs_temp = earth_obs.get("temperature_c")
+        if obs_temp is None:
+            return 0.5
+        fitting = total = 0
+        for s in seq:
+            c = crops.get(s["crop_id"])
+            if not c:
+                continue
+            total += 1
+            lo, hi = c.get("temp_range_c", [0, 50])
+            if lo <= obs_temp <= hi:
+                fitting += 1
+        return fitting / total if total else 0.5
+
+    if not seq:
         return 0.5
-    obs_temp = earth_obs.get("temperature_c")
-    if obs_temp is None:
-        return 0.5
-    fitting = total = 0
+
+    label = climate["current_season"]["label"]
+
+    # Per-cluster water-fit weights.
+    # Kharif-like  = wet monsoon → high-water crops do well
+    # Rabi-like    = cool + dry  → medium water is ideal, high is wasteful
+    # Zaid-like    = hot + dry   → only low-water crops thrive
+    weights = {
+        "Kharif-like": {"high": 0.25, "medium": 0.22, "low": 0.15},
+        "Rabi-like":   {"medium": 0.25, "low": 0.22, "high": 0.08},
+        "Zaid-like":   {"low": 0.25, "medium": 0.15, "high": 0.05},
+    }.get(label, {"low": 0.20, "medium": 0.20, "high": 0.20})
+
+    total = 0.0
     for s in seq:
         c = crops.get(s["crop_id"])
         if not c:
             continue
-        total += 1
-        lo, hi = c.get("temp_range_c", [0, 50])
-        if lo <= obs_temp <= hi:
-            fitting += 1
-    return fitting / total if total else 0.5
+        req = c.get("water_requirement", "medium")
+        total += weights.get(req, 0.20)
+
+    base = total / len(seq)
+
+    # Only penalize for SIGNIFICANT anomalies (>0.6). Your 0.52 was
+    # borderline — do not penalize near-typical seasons.
+    significant = [a for a in climate.get("anomalies", [])
+                   if a.get("score", 0) > 0.6]
+    if significant:
+        base *= 0.90
+
+    return min(1.0, max(0.0, base))
 
 
 def score_soil_improvement(seq: list[dict], crops: dict) -> float:
@@ -287,12 +353,12 @@ def _normalize_weights(priorities: dict) -> dict:
 
 
 def _build_strategy(sid: str, label: str, seq: list[dict],
-                    crops: dict, earth_obs: dict | None,
+                    crops: dict, earth_obs: dict | None, climate,
                     constraints: dict, priorities: dict, agronomy: dict | None = None) -> dict:
     passed, reasons = check_constraints(seq, constraints, agronomy)
     scores = {
         "water_efficiency":      score_water_efficiency(seq, crops),
-        "climate_compatibility": score_climate_compatibility(seq, crops, earth_obs),
+        "climate_compatibility": score_climate_compatibility(seq, crops, earth_obs, climate),
         "soil_improvement":      score_soil_improvement(seq, crops),
         "nitrogen_cycling":      score_nitrogen_cycling(seq, crops),
         "erosion_protection":    score_erosion_protection(seq, crops),
@@ -329,6 +395,7 @@ def rotation_node(state: RotationState) -> dict:
     priorities = _normalize_weights(state.get("priorities") or {})
     constraints = state.get("constraints") or {}
     earth_obs = state.get("earth_obs")
+    climate = state.get("climate")
 
     viable = build_viable_pool(agronomy, crops)
     if not viable:
@@ -342,7 +409,7 @@ def rotation_node(state: RotationState) -> dict:
     sequences = [
         ("strategy_a", "existing",           generate_existing(current)),
         ("strategy_b", "soil_restoration",   generate_soil_restoration(viable)),
-        ("strategy_c", "climate_resilience", generate_climate_resilience(viable)),
+        ("strategy_c", "climate_resilience", generate_climate_resilience(viable, climate)),
         ("strategy_d", "farmer_prioritized", generate_farmer_prioritized(viable, priorities)),
     ]
 
@@ -352,7 +419,7 @@ def rotation_node(state: RotationState) -> dict:
         if not seq:
             continue
         strategies.append(
-            _build_strategy(sid, label, seq, crops, earth_obs, constraints, priorities, agronomy) # type: ignore
+            _build_strategy(sid, label, seq, crops, earth_obs, climate, constraints, priorities, agronomy) # type: ignore
         )
     
     LABEL_PRIORITY = {
@@ -382,7 +449,6 @@ def rotation_node(state: RotationState) -> dict:
         [s for s in valid if s["strategy_id"] in front],
         key=lambda s: -s["weighted_score"],
     )
-    
     
 
     return {

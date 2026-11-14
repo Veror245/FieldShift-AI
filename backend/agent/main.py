@@ -8,6 +8,7 @@ from ..agent.earth_obser.graph import earth_obs_node
 from ..agent.soil.graph import soil_node
 from ..agent.rotation.graph import rotation_node
 from ..agent.advisor.graph import advisor_node
+from ..agent.climate_intelli.graph import climate_node
 
 import asyncio
 
@@ -24,7 +25,7 @@ graph = StateGraph(InvestigationState)
 graph.add_node("supervisor", supervisor_node)
 graph.add_node("earth_obs", earth_obs_node)
 graph.add_node("soil", soil_node)
-graph.add_node("climate", stub_climate)
+graph.add_node("climate", climate_node)
 graph.add_node("rotation", rotation_node)
 graph.add_node("advisor", advisor_node)
 graph.add_node("await_farmer", await_farmer)
@@ -101,6 +102,9 @@ if __name__ == "__main__":
                 "required_crops": [],
                 "max_water_requirement": "medium",
             },
+            
+            "climate_target_year": 2025,
+            "climate_target_season": "Kharif",
         }
 
         async for event in app.astream(request, stream_mode="updates"): # type: ignore

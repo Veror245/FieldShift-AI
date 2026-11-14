@@ -1,14 +1,18 @@
 import { z } from "zod"
 import type { FarmProfile } from "@/types/farm"
+import { defaultPriorities } from "@/types/farm"
 import type { FieldPolygon } from "@/types/geojson"
 
-const unit = z.number().min(0).max(1)
-
-// This matches the JSON structure the backend team sent.
 export const investigationRequestSchema = z.object({
   farm_id: z.string().min(1),
   lat: z.number().min(-90).max(90),
   lon: z.number().min(-180).max(180),
+  field: z
+    .object({
+      lat: z.number().min(-90).max(90),
+      lon: z.number().min(-180).max(180),
+    })
+    .optional(),
   region: z.string().min(1),
   current_rotation: z
     .array(
@@ -29,14 +33,14 @@ export const investigationRequestSchema = z.object({
   }),
   objectives: z.string().min(1),
   priorities: z.object({
-    water_efficiency: unit,
-    soil_improvement: unit,
-    economic_potential: unit,
-    climate_compatibility: unit,
-    nitrogen_cycling: unit,
-    erosion_protection: unit,
-    crop_diversity: unit,
-    feasibility: unit,
+    water_efficiency: z.number(),
+    soil_improvement: z.number(),
+    economic_potential: z.number(),
+    climate_compatibility: z.number(),
+    nitrogen_cycling: z.number(),
+    erosion_protection: z.number(),
+    crop_diversity: z.number(),
+    feasibility: z.number(),
   }),
   constraints: z.object({
     forbidden_crops: z.array(z.string()),
@@ -48,7 +52,6 @@ export const investigationRequestSchema = z.object({
 export type InvestigationRequest = z.infer<typeof investigationRequestSchema>
 export type BackendPriorities = InvestigationRequest["priorities"]
 
-// Check these words with the backend team and edit them here if they differ.
 const textureId: Record<FarmProfile["soilTexture"], string> = {
   unknown: "unknown",
   sandy: "sand",
@@ -92,26 +95,10 @@ export function polygonCentroid(polygon: FieldPolygon): { lat: number; lon: numb
   return { lon: cx / (6 * a), lat: cy / (6 * a) }
 }
 
-// TEMPORARY MAPPING. The form has 3 sliders but the backend takes 8 priorities.
-// - "Save water"           -> water_efficiency
-// - "Improve soil health"  -> soil_improvement, nitrogen_cycling, erosion_protection
-// - "Keep costs low"       -> economic_potential, feasibility
-// - climate_compatibility and crop_diversity have no slider yet, so they are sent as 0.5 (neutral).
-// Replace this with 8 real sliders once the team agrees on the priorities UI.
-export function prioritiesFromProfile(p: FarmProfile): BackendPriorities {
-  const water = toUnit(p.waterPriority)
-  const soil = toUnit(p.soilPriority)
-  const cost = toUnit(p.costPriority)
-  return {
-    water_efficiency: water,
-    soil_improvement: soil,
-    nitrogen_cycling: soil,
-    erosion_protection: soil,
-    economic_potential: cost,
-    feasibility: cost,
-    climate_compatibility: 0.5,
-    crop_diversity: 0.5,
-  }
+function composeObjectives(p: FarmProfile): string {
+  const own = p.objectives.trim()
+  if (own) return own
+  return `${waterText[p.water]}. I want to improve soil health without taking excessive economic risks.`
 }
 
 export function buildInvestigationRequest(args: {
@@ -126,10 +113,13 @@ export function buildInvestigationRequest(args: {
   const sampled = profile.sampledAt.trim()
   const lab = profile.labName.trim()
 
+  const priorities = profile.priorities ?? defaultPriorities
+
   const request = {
     farm_id: farmId,
     lat: round(lat),
     lon: round(lon),
+    field: { lat: round(lat), lon: round(lon) },
     region: profile.region,
     current_rotation: profile.rotation.map((r) => ({
       crop_id: cropId(r.crop),
@@ -144,8 +134,17 @@ export function buildInvestigationRequest(args: {
       ...(sampled ? { sampled_at: sampled } : {}),
       ...(lab ? { lab_name: lab } : {}),
     },
-    objectives: profile.objectives.trim() || waterText[profile.water],
-    priorities: prioritiesFromProfile(profile),
+    objectives: composeObjectives(profile),
+    priorities: {
+      water_efficiency: priorities.water_efficiency,
+      soil_improvement: priorities.soil_improvement,
+      economic_potential: priorities.economic_potential,
+      climate_compatibility: priorities.climate_compatibility,
+      nitrogen_cycling: priorities.nitrogen_cycling,
+      erosion_protection: priorities.erosion_protection,
+      crop_diversity: priorities.crop_diversity,
+      feasibility: priorities.feasibility,
+    },
     constraints: {
       forbidden_crops: profile.forbiddenCrops.map(cropId),
       required_crops: profile.requiredCrops.map(cropId),

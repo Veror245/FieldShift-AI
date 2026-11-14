@@ -1,8 +1,8 @@
 import area from "@turf/area"
 import type { FarmProfile } from "@/types/farm"
+import { defaultPriorities } from "@/types/farm"
 import type { FieldPolygon } from "@/types/geojson"
 
-// SAMPLE DATA for demos. The outline is not a real farm.
 const polygon: FieldPolygon = {
   type: "Feature",
   properties: {},
@@ -33,13 +33,14 @@ const profile: FarmProfile = {
   soilTexture: "loamy",
   nitrogenPpm: "180",
   sampledAt: "2024-03-15",
-  labName: "Sample lab",
+  labName: "Punjab Soil Lab",
   water: "unreliable",
   waterPriority: 70,
   costPriority: 40,
   soilPriority: 70,
+  priorities: defaultPriorities,
   objectives:
-    "Water availability has become unreliable and I want healthier soil without taking big economic risks.",
+    "Water availability has become unreliable. I want to improve soil health without taking excessive economic risks.",
   forbiddenCrops: [],
   requiredCrops: [],
   maxWater: "medium",

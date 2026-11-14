@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
-import { ArrowRightIcon, FlaskIcon, HistoryIcon } from "@/components/common/Icons"
+import { ArrowRightIcon, HistoryIcon } from "@/components/common/Icons"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { PageHeader } from "@/components/common/PageHeader"
@@ -10,7 +10,7 @@ import { LoadingState } from "@/components/common/LoadingState"
 import { ErrorState } from "@/components/common/ErrorState"
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber"
 import ClimateAnomalyChart from "@/charts/ClimateAnomalyChart"
-import { getClimateFindings, USE_MOCK } from "@/services/api"
+import { getClimateFindings } from "@/services/api"
 import { pageContainer, pageItem } from "@/lib/motion"
 
 const clusterDot = ["bg-[#4E633D]", "bg-[#7E9167]", "bg-[#A66843]"]
@@ -38,12 +38,6 @@ export default function ClimateFindings() {
             </>
           }
         />
-        {USE_MOCK && (
-          <div className="flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold bg-[#A66843]/15 border border-[#A66843]/35 text-[#A66843] shadow-sm">
-            <FlaskIcon className="h-3.5 w-3.5" />
-            <span>Simulated NASA POWER Data</span>
-          </div>
-        )}
       </motion.div>
 
       {isLoading && (

@@ -54,4 +54,7 @@ class InvestigationState(TypedDict, total=False):
     revision_count: int
     max_steps: int
     
+    climate_target_year: int
+    climate_target_season: str
+    
 

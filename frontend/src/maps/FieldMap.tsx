@@ -67,11 +67,14 @@ const mapStyle: maplibregl.StyleSpecification = {
     satellite: {
       type: "raster",
       tiles: [
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        "https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
+        "https://mt1.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
+        "https://mt2.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
+        "https://mt3.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
       ],
       tileSize: 256,
-      maxzoom: 19,
-      attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
+      maxzoom: 20,
+      attribution: "Imagery © Google HD Satellite",
     },
     streets: {
       type: "raster",
@@ -89,8 +92,8 @@ const mapStyle: maplibregl.StyleSpecification = {
       type: "raster",
       source: "satellite",
       paint: {
-        "raster-saturation": 0.15,
-        "raster-contrast": 0.05,
+        "raster-saturation": 0.25,
+        "raster-contrast": 0.08,
       },
     },
     ...nasaLayers.map((l) => ({
@@ -216,9 +219,9 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
           new TerraDrawPolygonMode({
             styles: {
               fillColor: "#2563EB",
-              fillOpacity: 0.15,
+              fillOpacity: 0.28,
               outlineColor: "#2563EB",
-              outlineWidth: 2,
+              outlineWidth: 3,
             },
           }),
           new TerraDrawSelectMode({
@@ -232,10 +235,9 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
             },
             styles: {
               selectedPolygonColor: "#2563EB",
-              selectedPolygonFillOpacity: 0.15,
-              // committed field: blue transparent interior + strong outline
+              selectedPolygonFillOpacity: 0.30,
               selectedPolygonOutlineColor: "#2563EB",
-              selectedPolygonOutlineWidth: 4,
+              selectedPolygonOutlineWidth: 3,
             },
           }),
         ],
@@ -334,9 +336,13 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
     if (!map) return
     map.on("move", updateScreenCoords)
     map.on("zoom", updateScreenCoords)
+    map.on("moveend", updateScreenCoords)
+    map.on("resize", updateScreenCoords)
     return () => {
       map.off("move", updateScreenCoords)
       map.off("zoom", updateScreenCoords)
+      map.off("moveend", updateScreenCoords)
+      map.off("resize", updateScreenCoords)
     }
   }, [updateScreenCoords])
 
@@ -700,7 +706,7 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
       : null
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-2xl border border-forest/10">
+    <div className="relative h-full w-full overflow-hidden rounded-3xl border border-forest/15 shadow-sm">
       <div
         ref={containerRef}
         className={`h-full w-full transition-all duration-300 ${drawing ? "cursor-crosshair" : ""}`}
@@ -736,8 +742,13 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
       <svg className="absolute inset-0 pointer-events-none w-full h-full z-15 overflow-visible">
         <defs>
           <linearGradient id="glassFieldFill" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.12" />
-            <stop offset="100%" stopColor="#60A5FA" stopOpacity="0.04" />
+            <stop offset="0%" stopColor="#2563EB" stopOpacity="0.32" />
+            <stop offset="100%" stopColor="#1D4ED8" stopOpacity="0.22" />
+          </linearGradient>
+          <linearGradient id="savedFieldFill" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#2563EB" stopOpacity="0.35" />
+            <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#1D4ED8" stopOpacity="0.32" />
           </linearGradient>
         </defs>
 
@@ -840,6 +851,20 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
 
         {!drawing && savedScreenCoords.length >= 3 && savedCoords.length >= 3 && (
           <>
+            <polygon
+              points={savedScreenCoords.map((p) => `${p.x},${p.y}`).join(" ")}
+              fill="url(#savedFieldFill)"
+              stroke="#2563EB"
+              strokeWidth="2.8"
+              strokeLinejoin="round"
+            />
+            <polygon
+              points={savedScreenCoords.map((p) => `${p.x},${p.y}`).join(" ")}
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.7)"
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
             {savedScreenCoords.map((pt, i) => {
               if (i >= savedCoords.length) return null
               const nextPt = savedScreenCoords[(i + 1) % savedScreenCoords.length]
