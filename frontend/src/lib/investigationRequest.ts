@@ -69,7 +69,6 @@ const waterText: Record<FarmProfile["water"], string> = {
 const cropId = (c: string) => c.trim().toLowerCase().replace(/\s+/g, "_")
 const num = (v: string) => (v.trim() === "" ? null : Number(v))
 const round = (n: number) => Number(n.toFixed(5))
-const toUnit = (n: number) => Math.round(Math.max(0, Math.min(100, n))) / 100
 
 export function polygonCentroid(polygon: FieldPolygon): { lat: number; lon: number } {
   const ring = polygon.geometry.coordinates[0]
