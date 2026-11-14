@@ -982,7 +982,7 @@ export function thinkingOrbs(scope = document, options = {}) {
 		!instance.destroyed &&
 		!instance.paused &&
 		instance.effectiveSpeed > 0 &&
-		instance.visible &&
+		(instance.visible || Boolean(instance.canvas?.isConnected)) &&
 		!reducedMotion &&
 		document.visibilityState !== "hidden";
 
