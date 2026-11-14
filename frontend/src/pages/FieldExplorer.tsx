@@ -151,12 +151,76 @@ export default function FieldExplorer() {
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px] xl:grid-cols-[minmax(0,1fr)_440px]">
-        <div className="h-[84vh] min-h-[620px] lg:sticky lg:top-6">
+        <div className="h-[84vh] min-h-[620px] lg:sticky lg:top-6 relative overflow-hidden rounded-2xl">
           <FieldMap
             polygon={polygon}
             onChange={setField}
             onLocationFound={handleLocationFound}
           />
+
+          <AnimatePresence>
+            {investigating && (
+              <motion.div
+                initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                animate={{ opacity: 1, backdropFilter: "blur(16px)" }}
+                exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                transition={{ duration: 0.45, ease: "easeInOut" }}
+                className="absolute inset-0 z-30 flex items-center justify-center p-6 bg-forest-950/20 backdrop-blur-xl rounded-2xl"
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.92, y: 12 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.94, y: -8 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                  className="w-full max-w-sm rounded-3xl border border-white/60 dark:border-forest/40 bg-white/90 dark:bg-[#16211a]/90 p-6 shadow-2xl backdrop-blur-2xl text-center space-y-4"
+                >
+                  <div className="flex items-center justify-center">
+                    <ThinkingOrb
+                      state={investigationStages[investigationStep]?.orbState ?? "working"}
+                      size={76}
+                      speed={1.1}
+                      theme="auto"
+                      className="mx-auto drop-shadow-md"
+                      aria-label="Agent working"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-forest/20 bg-forest/5 px-3 py-1 text-xs font-semibold text-forest dark:text-forest-300">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-forest opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-forest" />
+                      </span>
+                      Step {investigationStep + 1} of {investigationStages.length}
+                    </div>
+                    <h3 className="text-base font-bold text-stone-900 dark:text-stone-100">
+                      {investigationStages[investigationStep]?.title}
+                    </h3>
+                    <p className="text-xs text-stone-600 dark:text-stone-300">
+                      {investigationStages[investigationStep]?.detail}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5 pt-1">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-stone-200/80 dark:bg-stone-800/80">
+                      <motion.div
+                        className="h-full rounded-full bg-forest"
+                        initial={{ width: "20%" }}
+                        animate={{
+                          width: `${((investigationStep + 1) / investigationStages.length) * 100}%`,
+                        }}
+                        transition={{ duration: 0.4, ease: "easeInOut" }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[11px] font-medium text-stone-500 dark:text-stone-400">
+                      <span>Autonomous agent workflow</span>
+                      <span>{Math.round(((investigationStep + 1) / investigationStages.length) * 100)}%</span>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="space-y-6 min-w-0">
@@ -319,69 +383,6 @@ export default function FieldExplorer() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {investigating && (
-          <motion.div
-            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            animate={{ opacity: 1, backdropFilter: "blur(16px)" }}
-            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            transition={{ duration: 0.45, ease: "easeInOut" }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-forest-900/10 dark:bg-forest-950/20 backdrop-blur-xl"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.94, y: 14 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: -10 }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-              className="w-full max-w-md rounded-3xl border border-white/50 dark:border-forest/30 bg-white/75 dark:bg-[#152019]/80 p-7 shadow-2xl backdrop-blur-2xl text-center space-y-5"
-            >
-              <div className="flex items-center justify-center">
-                <ThinkingOrb
-                  state={investigationStages[investigationStep]?.orbState ?? "working"}
-                  size={76}
-                  speed={1.1}
-                  theme="auto"
-                  className="mx-auto drop-shadow-md"
-                  aria-label="Agent working"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="inline-flex items-center gap-2 rounded-full border border-forest/20 bg-forest/5 px-3 py-1 text-xs font-semibold text-forest dark:text-forest-300">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-forest opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-forest" />
-                  </span>
-                  Step {investigationStep + 1} of {investigationStages.length}
-                </div>
-                <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">
-                  {investigationStages[investigationStep]?.title}
-                </h3>
-                <p className="text-xs text-stone-600 dark:text-stone-300">
-                  {investigationStages[investigationStep]?.detail}
-                </p>
-              </div>
-
-              <div className="space-y-1.5 pt-1">
-                <div className="h-2 w-full overflow-hidden rounded-full bg-stone-200/80 dark:bg-stone-800/80">
-                  <motion.div
-                    className="h-full rounded-full bg-forest"
-                    initial={{ width: "15%" }}
-                    animate={{
-                      width: `${((investigationStep + 1) / investigationStages.length) * 100}%`,
-                    }}
-                    transition={{ duration: 0.4, ease: "easeInOut" }}
-                  />
-                </div>
-                <div className="flex justify-between text-[11px] font-medium text-stone-500 dark:text-stone-400">
-                  <span>Autonomous agent workflow</span>
-                  <span>{Math.round(((investigationStep + 1) / investigationStages.length) * 100)}%</span>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   )
 }
