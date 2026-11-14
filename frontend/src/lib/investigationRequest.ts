@@ -106,7 +106,8 @@ export function polygonCentroid(polygon: FieldPolygon): { lat: number; lon: numb
 
 function composeObjectives(p: FarmProfile): string {
   const own = p.objectives.trim()
-  if (own) return own
+  if (own.length >= 5) return own
+  if (own.length > 0) return `${own}. ${waterText[p.water]}`
   return `${waterText[p.water]}. I want to improve soil health without taking excessive economic risks.`
 }
 
@@ -128,7 +129,6 @@ export function buildInvestigationRequest(args: {
     farm_id: farmId,
     lat: round(lat),
     lon: round(lon),
-    field: { lat: round(lat), lon: round(lon) },
     region: profile.region,
     current_rotation: profile.rotation.map((r) => ({
       crop_id: cropId(r.crop),
