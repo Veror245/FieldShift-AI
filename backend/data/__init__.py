@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-_CROPS_PATH = Path(__file__).parent / "crops.json"
+_CROPS_PATH = Path(__file__).parent / "cropsnew.json"
 _crops_cache = None
 
 def load_crops() -> dict:
