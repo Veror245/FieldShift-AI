@@ -9,6 +9,7 @@ import {
 } from "@/utils/uiSoundEngine"
 import { EASE_OUT_EXPO, pageExitTransition } from "@/lib/motion"
 import { navItems } from "./nav"
+import logoUrl from "../../assets/logo.png"
 
 export default function AppShell() {
   const location = useLocation()
@@ -33,7 +34,7 @@ export default function AppShell() {
               <>
                 <div className="flex items-center gap-2.5 overflow-hidden">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-[#2A3327] shadow-sm overflow-hidden p-1">
-                    <img src="/src/assets/logo.png" alt="FieldShift AI" className="h-full w-full object-contain" />
+                    <img src={logoUrl} alt="FieldShift AI" className="h-full w-full object-contain" />
                   </div>
                   <span className="font-sans font-bold text-lg tracking-tight text-[#ECE8DF] leading-none truncate">
                     FieldShift AI
