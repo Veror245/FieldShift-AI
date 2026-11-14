@@ -24,28 +24,38 @@ function Slider({
   )
 
   const lastSoundVal = React.useRef<number | null>(null)
+  const containerRef = React.useRef<HTMLDivElement>(null)
 
-  const handleValueChange = (newVal: number[]) => {
-    if (newVal[0] !== lastSoundVal.current) {
-      lastSoundVal.current = newVal[0]
-      uiSoundEngine.playTick(0.85 + (newVal[0] / max) * 0.4)
-    }
-    onValueChange?.(newVal)
-  }
+  const handleValueChange = React.useCallback(
+    (newVal: number[]) => {
+      if (newVal[0] !== lastSoundVal.current) {
+        lastSoundVal.current = newVal[0]
+        uiSoundEngine.playTick(0.85 + (newVal[0] / max) * 0.4)
+      }
+      onValueChange?.(newVal)
+    },
+    [max, onValueChange]
+  )
 
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const current = Array.isArray(value) ? value[0] : (defaultValue?.[0] ?? min)
-    const delta = e.deltaY < 0 ? step : -step
-    const nextVal = Math.min(max, Math.max(min, current + delta))
-    if (nextVal !== current) {
-      handleValueChange([nextVal])
+  React.useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const current = Array.isArray(value) ? value[0] : (defaultValue?.[0] ?? min)
+      const delta = e.deltaY < 0 ? step : -step
+      const nextVal = Math.min(max, Math.max(min, current + delta))
+      if (nextVal !== current) {
+        handleValueChange([nextVal])
+      }
     }
-  }
+    el.addEventListener("wheel", onWheel, { passive: false })
+    return () => el.removeEventListener("wheel", onWheel)
+  }, [value, defaultValue, min, max, step, handleValueChange])
 
   return (
-    <div onWheel={handleWheel} className="w-full py-1">
+    <div ref={containerRef} className="w-full py-1">
       <SliderPrimitive.Root
         data-slot="slider"
         defaultValue={defaultValue}

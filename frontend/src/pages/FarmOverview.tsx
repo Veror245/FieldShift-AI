@@ -8,6 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader } from "@/components/common/PageHeader"
 import { Term } from "@/components/common/Term"
 import FieldShape from "@/components/farm/FieldShape"
+import {
+  FieldDrawIcon,
+  FarmDetailsIcon,
+  InvestigationIcon,
+  RotationCycleIcon,
+  ReportCertIcon,
+} from "@/components/farm/WorkflowStepIcons"
 import { getClimateFindings, getStrategies, getWatchAlerts, USE_MOCK } from "@/services/api"
 import { useFarmStore } from "@/store/useFarmStore"
 import { pageContainer, pageItem } from "@/lib/motion"
@@ -33,11 +40,41 @@ export default function FarmOverview() {
   const newAlerts = alerts.data?.filter((a) => a.status === "new") ?? []
 
   const steps = [
-    { label: "Draw your field", to: "/field", done: !!polygon },
-    { label: "Add farm details", to: "/field", done: !!profile },
-    { label: "Run the investigation", to: "/investigation", done: false },
-    { label: "Compare rotations", to: "/strategies", done: !!selected },
-    { label: "Get your report", to: "/reports", done: false },
+    {
+      label: "Draw your field",
+      subtitle: "Boundary & GPS points",
+      to: "/field",
+      done: Boolean(polygon),
+      Icon: FieldDrawIcon,
+    },
+    {
+      label: "Add farm details",
+      subtitle: "Soil & crop history",
+      to: "/field",
+      done: Boolean(profile),
+      Icon: FarmDetailsIcon,
+    },
+    {
+      label: "Run the investigation",
+      subtitle: "Autonomous agents",
+      to: "/investigation",
+      done: false,
+      Icon: InvestigationIcon,
+    },
+    {
+      label: "Compare rotations",
+      subtitle: "Scenario models",
+      to: "/strategies",
+      done: Boolean(selected),
+      Icon: RotationCycleIcon,
+    },
+    {
+      label: "Get your report",
+      subtitle: "Full verified dossier",
+      to: "/reports",
+      done: false,
+      Icon: ReportCertIcon,
+    },
   ]
 
   const avgRain = climate.data
@@ -86,23 +123,45 @@ export default function FarmOverview() {
         variants={pageItem}
         className="mb-6 grid max-sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3"
       >
-        {steps.map((s, i) => (
-          <li key={s.label}>
-            <Link
-              to={s.to}
-              className="flex h-full items-center gap-3 rounded-xl border border-forest/10 bg-white p-3 text-sm transition-shadow hover:shadow-md"
-            >
-              <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                  s.done ? "bg-forest text-ivory" : "bg-forest/10 text-forest/60"
-                }`}
+        {steps.map((s, i) => {
+          const StepIcon = s.Icon
+          return (
+            <li key={s.label}>
+              <Link
+                to={s.to}
+                className="group relative flex h-full flex-col justify-between rounded-2xl border border-forest/15 bg-gradient-to-b from-white to-[#F9F7F2] p-3.5 shadow-xs transition-all hover:border-forest/40 hover:shadow-md hover:-translate-y-0.5"
               >
-                {s.done ? <Check className="h-4 w-4" /> : i + 1}
-              </span>
-              {s.label}
-            </Link>
-          </li>
-        ))}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10.5px] font-mono font-bold uppercase tracking-wider text-forest/60">
+                    Step 0{i + 1}
+                  </span>
+                  <span
+                    className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                      s.done
+                        ? "bg-forest text-ivory shadow-xs"
+                        : "bg-forest/10 text-forest/60"
+                    }`}
+                  >
+                    {s.done ? <Check className="h-3 w-3 stroke-[2.5]" /> : i + 1}
+                  </span>
+                </div>
+
+                <div className="my-2 flex items-center justify-center py-1">
+                  <StepIcon done={s.done} />
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold text-forest leading-tight group-hover:text-forest">
+                    {s.label}
+                  </p>
+                  <p className="text-[10.5px] text-forest/60 truncate mt-0.5">
+                    {s.subtitle}
+                  </p>
+                </div>
+              </Link>
+            </li>
+          )
+        })}
       </motion.ol>
 
       <motion.div variants={pageItem} className="grid gap-6 lg:grid-cols-2">

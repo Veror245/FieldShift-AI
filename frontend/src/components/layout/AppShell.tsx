@@ -94,11 +94,29 @@ export default function AppShell() {
                       className="absolute inset-0 rounded-xl bg-gradient-to-br from-[#98B882] via-[#7E9867] to-[#688254] border border-white/25 border-t-white/45 shadow-[0_4px_16px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-xl pointer-events-none"
                     />
                   )}
-                  <Icon
-                    className={`relative z-10 h-4.5 w-4.5 transition-colors duration-150 ${
-                      isActive ? "text-[#0C160F]" : "text-[#B8B5A8] group-hover:text-[#ECE8DF]"
-                    }`}
-                  />
+                  <motion.div
+                    className="relative z-10 flex items-center justify-center shrink-0"
+                    animate={
+                      isActive
+                        ? {
+                            scale: [1, 1.25, 0.92, 1.12, 1],
+                            rotate: [0, -8, 8, -3, 0],
+                          }
+                        : { scale: 1, rotate: 0 }
+                    }
+                    transition={{
+                      type: "spring",
+                      stiffness: 420,
+                      damping: 18,
+                      mass: 0.8,
+                    }}
+                  >
+                    <Icon
+                      className={`h-4.5 w-4.5 transition-colors duration-150 ${
+                        isActive ? "text-[#0C160F]" : "text-[#B8B5A8] group-hover:text-[#ECE8DF]"
+                      }`}
+                    />
+                  </motion.div>
                   {!collapsed && (
                     <span
                       className={`relative z-10 transition-colors duration-150 truncate ${
@@ -171,7 +189,25 @@ export default function AppShell() {
                     className="absolute inset-1 rounded-xl bg-gradient-to-br from-[#98B882] via-[#7E9867] to-[#688254] border border-white/25 border-t-white/45 shadow-[0_4px_16px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-xl"
                   />
                 )}
-                <Icon className={`relative z-10 h-4 w-4 ${isActive ? "text-[#141A12]" : "text-[#B8B5A8]"}`} />
+                <motion.div
+                  className="relative z-10 flex items-center justify-center shrink-0"
+                  animate={
+                    isActive
+                      ? {
+                          scale: [1, 1.25, 0.92, 1.12, 1],
+                          rotate: [0, -8, 8, -3, 0],
+                        }
+                      : { scale: 1, rotate: 0 }
+                  }
+                  transition={{
+                    type: "spring",
+                    stiffness: 420,
+                    damping: 18,
+                    mass: 0.8,
+                  }}
+                >
+                  <Icon className={`h-4 w-4 ${isActive ? "text-[#141A12]" : "text-[#B8B5A8]"}`} />
+                </motion.div>
                 <span className={`relative z-10 ${isActive ? "text-[#141A12] font-bold" : "text-[#B8B5A8]"}`}>
                   {label}
                 </span>

@@ -1,14 +1,18 @@
 import { z } from "zod"
 import type { FarmProfile } from "@/types/farm"
+import { defaultPriorities } from "@/types/farm"
 import type { FieldPolygon } from "@/types/geojson"
 
-// This matches the JSON structure the backend team asked for.
 export const investigationRequestSchema = z.object({
-  farm_id: z.string().uuid(),
-  field: z.object({
-    lat: z.number().min(-90).max(90),
-    lon: z.number().min(-180).max(180),
-  }),
+  farm_id: z.string().min(1),
+  lat: z.number().min(-90).max(90),
+  lon: z.number().min(-180).max(180),
+  field: z
+    .object({
+      lat: z.number().min(-90).max(90),
+      lon: z.number().min(-180).max(180),
+    })
+    .optional(),
   region: z.string().min(1),
   current_rotation: z
     .array(
@@ -28,6 +32,16 @@ export const investigationRequestSchema = z.object({
     lab_name: z.string().optional(),
   }),
   objectives: z.string().min(1),
+  priorities: z.object({
+    water_efficiency: z.number(),
+    soil_improvement: z.number(),
+    economic_potential: z.number(),
+    climate_compatibility: z.number(),
+    nitrogen_cycling: z.number(),
+    erosion_protection: z.number(),
+    crop_diversity: z.number(),
+    feasibility: z.number(),
+  }),
   constraints: z.object({
     forbidden_crops: z.array(z.string()),
     required_crops: z.array(z.string()),
@@ -37,7 +51,6 @@ export const investigationRequestSchema = z.object({
 
 export type InvestigationRequest = z.infer<typeof investigationRequestSchema>
 
-// Check these words with the backend team and edit them here if they differ.
 const textureId: Record<FarmProfile["soilTexture"], string> = {
   unknown: "unknown",
   sandy: "sand",
@@ -82,8 +95,8 @@ export function polygonCentroid(polygon: FieldPolygon): { lat: number; lon: numb
 
 function composeObjectives(p: FarmProfile): string {
   const own = p.objectives.trim()
-  const lead = own ? (/[.!?]$/.test(own) ? own : `${own}.`) : `${waterText[p.water]}.`
-  return `${lead} Priorities (0 to 100): save water ${p.waterPriority}, keep costs low ${p.costPriority}, improve soil health ${p.soilPriority}.`
+  if (own) return own
+  return `${waterText[p.water]}. I want to improve soil health without taking excessive economic risks.`
 }
 
 export function buildInvestigationRequest(args: {
@@ -98,8 +111,12 @@ export function buildInvestigationRequest(args: {
   const sampled = profile.sampledAt.trim()
   const lab = profile.labName.trim()
 
+  const priorities = profile.priorities ?? defaultPriorities
+
   const request = {
     farm_id: farmId,
+    lat: round(lat),
+    lon: round(lon),
     field: { lat: round(lat), lon: round(lon) },
     region: profile.region,
     current_rotation: profile.rotation.map((r) => ({
@@ -116,6 +133,16 @@ export function buildInvestigationRequest(args: {
       ...(lab ? { lab_name: lab } : {}),
     },
     objectives: composeObjectives(profile),
+    priorities: {
+      water_efficiency: priorities.water_efficiency,
+      soil_improvement: priorities.soil_improvement,
+      economic_potential: priorities.economic_potential,
+      climate_compatibility: priorities.climate_compatibility,
+      nitrogen_cycling: priorities.nitrogen_cycling,
+      erosion_protection: priorities.erosion_protection,
+      crop_diversity: priorities.crop_diversity,
+      feasibility: priorities.feasibility,
+    },
     constraints: {
       forbidden_crops: profile.forbiddenCrops.map(cropId),
       required_crops: profile.requiredCrops.map(cropId),

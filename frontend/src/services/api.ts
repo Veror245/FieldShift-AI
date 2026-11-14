@@ -10,6 +10,7 @@ import { mockWatch } from "@/mocks/watch"
 import { defaultWeights, weightedScore, type Weights } from "@/lib/scoring"
 import { runScenario } from "@/lib/scenario"
 import type { InvestigationRequest } from "@/lib/investigationRequest"
+import type { BackendInvestigationResult } from "@/types/investigation"
 
 export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false"
 export const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000"
@@ -24,7 +25,6 @@ export async function getStrategies(weights: Weights = defaultWeights): Promise<
       overallScore: weightedScore(s.scores, weights),
     }))
   }
-  // Placeholder path: update it to match the backend teammate's endpoint
   const res = await fetch(`${BASE_URL}/rotations/compare`, {
     method: "POST",
     headers: jsonHeaders,
@@ -39,7 +39,6 @@ export async function getClimateFindings(): Promise<ClimateFindings> {
     await wait(700)
     return mockClimate
   }
-  // Placeholder path: update it to match the backend teammate's endpoint
   const res = await fetch(`${BASE_URL}/climate/findings`)
   if (!res.ok) throw new Error("Failed to load climate findings")
   return res.json()
@@ -52,7 +51,6 @@ export async function getExplanation(strategyId: string): Promise<StrategyExplan
     if (!found) throw new Error("No explanation found")
     return found
   }
-  // Placeholder path: update it to match the backend teammate's endpoint
   const res = await fetch(`${BASE_URL}/rotations/${strategyId}/explanation`)
   if (!res.ok) throw new Error("Failed to load explanation")
   return res.json()
@@ -80,7 +78,6 @@ export async function getSeasonalCalendar(): Promise<SeasonalCalendar> {
     await wait(600)
     return mockCalendar
   }
-  // Placeholder path: update it to match the backend teammate's endpoint
   const res = await fetch(`${BASE_URL}/calendar`)
   if (!res.ok) throw new Error("Failed to load the seasonal calendar")
   return res.json()
@@ -116,7 +113,6 @@ export async function updateWatchRule(id: string, patch: Partial<NewWatchRule>):
     mockWatch.updateRule(id, patch)
     return
   }
-  // Placeholder path: update it to match the backend teammate's endpoint
   const res = await fetch(`${BASE_URL}/monitoring/rules/${id}`, {
     method: "PATCH",
     headers: jsonHeaders,
@@ -131,7 +127,6 @@ export async function deleteWatchRule(id: string): Promise<void> {
     mockWatch.removeRule(id)
     return
   }
-  // Placeholder path: update it to match the backend teammate's endpoint
   const res = await fetch(`${BASE_URL}/monitoring/rules/${id}`, { method: "DELETE" })
   if (!res.ok) throw new Error("Failed to delete the rule")
 }
@@ -141,7 +136,6 @@ export async function getWatchAlerts(): Promise<WatchAlert[]> {
     await wait(500)
     return mockWatch.alerts()
   }
-  // Placeholder path: update it to match the backend teammate's endpoint
   const res = await fetch(`${BASE_URL}/alerts`)
   if (!res.ok) throw new Error("Failed to load alerts")
   return res.json()
@@ -153,14 +147,13 @@ export async function reviewWatchAlert(id: string): Promise<void> {
     mockWatch.reviewAlert(id)
     return
   }
-  // Placeholder path: update it to match the backend teammate's endpoint
   const res = await fetch(`${BASE_URL}/alerts/${id}/review`, { method: "POST" })
   if (!res.ok) throw new Error("Failed to update the alert")
 }
 
 export async function startInvestigation(
   request: InvestigationRequest
-): Promise<{ investigationId: string }> {
+): Promise<{ investigationId: string; result?: BackendInvestigationResult }> {
   if (USE_MOCK) {
     await wait(600)
     return { investigationId: "demo" }
@@ -172,6 +165,6 @@ export async function startInvestigation(
   })
   if (!res.ok) throw new Error("The backend could not start the investigation")
   const data = await res.json()
-  // Assumed response: { "investigation_id": "..." }. Confirm with the backend team.
-  return { investigationId: String(data.investigation_id ?? data.id) }
+  const investigationId = String(data.investigation_id ?? data.id ?? "investigation-001")
+  return { investigationId, result: data.advisor ? (data as BackendInvestigationResult) : undefined }
 }
