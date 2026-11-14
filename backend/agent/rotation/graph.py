@@ -106,6 +106,9 @@ def generate_climate_resilience(pool: dict, climate=None) -> list[dict]:
     label = climate["current_season"]["label"]
     deviation = climate["baseline_comparison"]["deviation_pct"]
 
+
+    FORAGE_SCORE = {"none": 0.0, "low": 0.3, "medium": 0.6, "high": 1.0}
+    
     if label == "Zaid-like" or deviation < -15:
         # Hot + dry → strict low-water priority
         key = lambda c: (
@@ -127,8 +130,9 @@ def generate_climate_resilience(pool: dict, climate=None) -> list[dict]:
         # Kharif-like (wet monsoon) or deviation > +15 →
         # Can afford water, prioritize heat tolerance + soil building
         key = lambda c: (
-            -(c.get("temp_range_c", [15, 30])[1]),          # higher max-temp = hotter-tolerant
+            -(c.get("temp_range_c", [15, 30])[1]),
             -RESIDUE_SCORE.get(c.get("residue_contribution") or "low", 0.3),
+            -FORAGE_SCORE.get(c.get("forage_potential") or "none", 0.0),    # ← add
             sum(c.get("water_use_mm", [500, 800])) / 2,
         )
 
@@ -415,7 +419,7 @@ def rotation_node(state: RotationState) -> dict:
         if not seq:
             continue
         strategies.append(
-            _build_strategy(sid, label, seq, crops, earth_obs, climate=climate, constraints, priorities, agronomy) # type: ignore
+            _build_strategy(sid, label, seq, crops, earth_obs, climate, constraints, priorities, agronomy) # type: ignore
         )
     
     LABEL_PRIORITY = {

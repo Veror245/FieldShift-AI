@@ -41,6 +41,12 @@ class EarthObsResult(BaseModel):
     precipitation_mm: float | None = Field(None, description="Total precipitation, mm")
     solar_radiation_mj: float | None = Field(None, description="Mean solar radiation, MJ/m²/day")
 
+    def get(self, arg1):
+        ...
+    
+    def __getitem__(self, key):
+        return getattr(self, key)
+
 
 class FieldLocation(BaseModel):
     lat: float
@@ -89,5 +95,6 @@ class InvestigationResponse(BaseModel):
     rotation: dict | None
     agronomy: dict | None
     earth_obs: dict | None
+    climate: dict | None
     error: str | None = None
     created_at: datetime

@@ -36,6 +36,8 @@ async def create_investigation(req: InvestigationRequest):
         "objectives": req.objectives,
         "priorities": req.priorities or {k: 0.5 for k in DIMENSIONS},
         "constraints": req.constraints.model_dump(),
+        "climate_target_year": 2025,
+        "climate_target_season": "Kharif",
     }
 
     try:
@@ -53,6 +55,7 @@ async def create_investigation(req: InvestigationRequest):
             rotation=result.get("rotation"),
             agronomy=result.get("agronomy"),
             earth_obs=_strip_internal(result.get("earth_obs")),
+            climate=result.get("climate"),
             created_at=datetime.now(timezone.utc),
         )
 
@@ -64,6 +67,7 @@ async def create_investigation(req: InvestigationRequest):
         rotation=result["rotation"],
         agronomy=result["agronomy"],
         earth_obs=_strip_internal(result["earth_obs"]),
+        climate=result.get("climate"),
         created_at=datetime.now(timezone.utc),
     )
 

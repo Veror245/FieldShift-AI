@@ -445,3 +445,7 @@ def get_climate_analysis(
 
     # Step 10: Return final result
     return response
+
+df = pd.read_csv("backend/data/earth_obs/test-5b725b63-finaltrain.csv")
+respp = get_climate_analysis(df, 2025, "Kharif")
+print(respp)
