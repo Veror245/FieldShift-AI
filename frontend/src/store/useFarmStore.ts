@@ -23,7 +23,6 @@ type FarmState = {
   profile: FarmProfile | null
   selectedStrategyId: string | null
   weights: Weights
-  investigationResult: BackendInvestigationResult | null
   ensureFarmId: () => string
   setInvestigationId: (id: string | null) => void
   setInvestigationResult: (result: BackendInvestigationResult | null) => void
@@ -31,7 +30,6 @@ type FarmState = {
   setProfile: (profile: FarmProfile) => void
   selectStrategy: (id: string | null) => void
   setWeights: (weights: Weights) => void
-  setInvestigationResult: (res: BackendInvestigationResult | null) => void
   resetFarm: () => void
 }
 
@@ -40,13 +38,12 @@ export const useFarmStore = create<FarmState>()(
     (set, get) => ({
       farmId: null,
       investigationId: null,
-      investigationResult: null,
+      investigationResult: sampleBackendInvestigationResult,
       polygon: null,
       hectares: 0,
       profile: null,
       selectedStrategyId: null,
       weights: defaultWeights,
-      investigationResult: sampleBackendInvestigationResult,
       ensureFarmId: () => {
         const existing = get().farmId
         if (existing) return existing
@@ -60,18 +57,16 @@ export const useFarmStore = create<FarmState>()(
       setProfile: (profile) => set({ profile }),
       selectStrategy: (id) => set({ selectedStrategyId: id }),
       setWeights: (weights) => set({ weights }),
-      setInvestigationResult: (res) => set({ investigationResult: res }),
       resetFarm: () =>
         set({
           farmId: null,
           investigationId: null,
-          investigationResult: null,
+          investigationResult: sampleBackendInvestigationResult,
           polygon: null,
           hectares: 0,
           profile: null,
           selectedStrategyId: null,
           weights: defaultWeights,
-          investigationResult: sampleBackendInvestigationResult,
         }),
     }),
     { name: "fieldshift-farm-v2" }

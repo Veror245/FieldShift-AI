@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import * as maplibregl from "maplibre-gl"
 import "maplibre-gl/dist/maplibre-gl.css"
+import maplibreglWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url"
 import { TerraDraw, TerraDrawPolygonMode, TerraDrawSelectMode } from "terra-draw"
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter"
 import area from "@turf/area"
@@ -61,20 +62,21 @@ const nasaSources = Object.fromEntries(
   ])
 )
 
+if (typeof window !== "undefined" && typeof (maplibregl as { setWorkerUrl?: (url: string) => void }).setWorkerUrl === "function") {
+  ;(maplibregl as { setWorkerUrl: (url: string) => void }).setWorkerUrl(maplibreglWorkerUrl)
+}
+
 const mapStyle: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
     satellite: {
       type: "raster",
       tiles: [
-        "https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
-        "https://mt1.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
-        "https://mt2.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
-        "https://mt3.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&scale=2",
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       ],
       tileSize: 256,
-      maxzoom: 20,
-      attribution: "Imagery © Google HD Satellite",
+      maxzoom: 19,
+      attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
     },
     streets: {
       type: "raster",
@@ -212,7 +214,14 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right")
     mapRef.current = map
 
+    const container = containerRef.current
+    const resizeObserver = new ResizeObserver(() => {
+      map.resize()
+    })
+    resizeObserver.observe(container)
+
     map.on("load", () => {
+      map.resize()
       const draw = new TerraDraw({
         adapter: new TerraDrawMapLibreGLAdapter({ map }),
         modes: [
@@ -319,6 +328,7 @@ export default function FieldMap({ polygon, onChange, onLocationFound }: Props) 
     })
 
     return () => {
+      resizeObserver.disconnect()
       setReady(false)
       drawRef.current?.stop()
       drawRef.current = null

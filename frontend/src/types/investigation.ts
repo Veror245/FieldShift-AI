@@ -64,5 +64,6 @@ export type BackendInvestigationResult = {
     start_date: string
     end_date: string
   } | null
+  climate?: unknown
   created_at?: string
 }

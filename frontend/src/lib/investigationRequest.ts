@@ -26,7 +26,9 @@ export const investigationRequestSchema = z.object({
   soil_inputs: z.object({
     ph: z.number().nullable(),
     organic_carbon_pct: z.number().nullable(),
-    texture: z.string(),
+    texture: z
+      .enum(["sandy", "loamy_sand", "sandy_loam", "loam", "silt_loam", "clay_loam", "clay"])
+      .nullable(),
     nitrogen_ppm: z.number().optional(),
     sampled_at: z.string().optional(),
     lab_name: z.string().optional(),
@@ -52,12 +54,15 @@ export const investigationRequestSchema = z.object({
 export type InvestigationRequest = z.infer<typeof investigationRequestSchema>
 export type BackendPriorities = InvestigationRequest["priorities"]
 
-const textureId: Record<FarmProfile["soilTexture"], string> = {
-  unknown: "unknown",
-  sandy: "sand",
+const textureId: Record<
+  FarmProfile["soilTexture"],
+  "sandy" | "loam" | "clay" | "silt_loam" | null
+> = {
+  unknown: null,
+  sandy: "sandy",
   loamy: "loam",
   clay: "clay",
-  silty: "silt",
+  silty: "silt_loam",
 }
 
 const waterText: Record<FarmProfile["water"], string> = {
@@ -66,7 +71,12 @@ const waterText: Record<FarmProfile["water"], string> = {
   rainfed: "The farm is rain-fed only.",
 }
 
-const cropId = (c: string) => c.trim().toLowerCase().replace(/\s+/g, "_")
+const cropId = (c: string) => {
+  const norm = c.trim().toLowerCase().replace(/\s+/g, "_")
+  if (norm === "mungbean" || norm === "moong" || norm === "mung") return "mung_bean"
+  if (norm === "paddy") return "rice"
+  return norm
+}
 const num = (v: string) => (v.trim() === "" ? null : Number(v))
 const round = (n: number) => Number(n.toFixed(5))
 
@@ -122,7 +132,7 @@ export function buildInvestigationRequest(args: {
     region: profile.region,
     current_rotation: profile.rotation.map((r) => ({
       crop_id: cropId(r.crop),
-      season: r.season,
+      season: r.season.toLowerCase(),
       year,
     })),
     soil_inputs: {

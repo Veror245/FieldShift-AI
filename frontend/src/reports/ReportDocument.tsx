@@ -451,10 +451,10 @@ export default function ReportDocument({
                   : "Not tested"
               }
             />
-            {investigationResult.agronomy.planting_window_conflicts.length > 0 && (
+            {Boolean(investigationResult.agronomy.planting_window_conflicts?.length) && (
               <Row
                 label="Window conflicts"
-                value={investigationResult.agronomy.planting_window_conflicts.join("; ")}
+                value={(investigationResult.agronomy.planting_window_conflicts || []).join("; ")}
               />
             )}
           </dl>
