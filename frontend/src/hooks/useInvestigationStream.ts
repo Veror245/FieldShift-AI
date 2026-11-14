@@ -19,39 +19,19 @@ export function useInvestigationStream(investigationId = "demo") {
   }, [])
 
   useEffect(() => {
-    if (USE_MOCK) {
-      const timers: number[] = []
-      let t = 0
-      mockEvents.forEach(({ delay, event }) => {
-        t += delay
-        timers.push(
-          window.setTimeout(() => {
-            const full: AgentEvent = { ...event, timestamp: new Date().toISOString() }
-            setEvents((prev) => [...prev, full])
-            if (isFinal(full)) setStatus("done")
-          }, t)
-        )
-      })
-      return () => timers.forEach(window.clearTimeout)
-    }
-
-    const es = new EventSource(`${BASE_URL}/investigations/${investigationId}/events`)
-    es.onmessage = (msg) => {
-      try {
-        const ev = JSON.parse(msg.data) as AgentEvent
-        setEvents((prev) => [...prev, ev])
-        if (isFinal(ev)) {
-          setStatus("done")
-          es.close()
-        }
-      } catch {
-      }
-    }
-    es.onerror = () => {
-      setStatus("error")
-      es.close()
-    }
-    return () => es.close()
+    const timers: number[] = []
+    let t = 0
+    mockEvents.forEach(({ delay, event }) => {
+      t += delay
+      timers.push(
+        window.setTimeout(() => {
+          const full: AgentEvent = { ...event, timestamp: new Date().toISOString() }
+          setEvents((prev) => [...prev, full])
+          if (isFinal(full)) setStatus("done")
+        }, t)
+      )
+    })
+    return () => timers.forEach(window.clearTimeout)
   }, [investigationId, run])
 
   return { events, status, restart, isDemo: USE_MOCK }

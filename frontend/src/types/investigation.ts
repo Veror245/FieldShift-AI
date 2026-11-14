@@ -1,10 +1,10 @@
 export type BackendInvestigationResult = {
   investigation_id: string
-  status: "complete" | "pending" | "running" | "failed"
-  farm_id: string
-  advisor: {
-    overview: string
-    strategy_explanations: Array<{
+  status?: "complete" | "pending" | "running" | "failed"
+  farm_id?: string
+  advisor?: {
+    overview?: string | null
+    strategy_explanations?: Array<{
       strategy_id: string
       plain_summary: string
       why_suggested: string
@@ -14,12 +14,12 @@ export type BackendInvestigationResult = {
       farmer_questions: string[]
       sources: string[]
     }>
-    comparison: string
-    recommendation_note: string
-    next_steps: string[]
-    overall_uncertainties: string[]
-  }
-  rotation: {
+    comparison?: string | null
+    recommendation_note?: string | null
+    next_steps?: string[] | null
+    overall_uncertainties?: string[]
+  } | null
+  rotation?: {
     pareto_front?: string[]
     recommended_order?: string[]
     strategies: Array<{
@@ -45,24 +45,24 @@ export type BackendInvestigationResult = {
       missing_data: string[]
       expert_validation_needed: string[]
     }>
-  }
-  agronomy: {
+  } | null
+  agronomy?: {
     soil_assessment: {
-      ph?: { value: number; status: string }
-      organic_carbon_pct?: { value: number; status: string }
+      ph?: { value: number; status: string } | null
+      organic_carbon_pct?: { value: number; status: string } | null
     }
-    crop_compatibility: unknown[]
-    planting_window_conflicts: string[]
-    expert_validation_needed: string[]
-  }
-  earth_obs: {
+    crop_compatibility?: unknown[]
+    planting_window_conflicts?: string[]
+    expert_validation_needed?: string[]
+  } | null
+  earth_obs?: {
     source: string
     grid_resolution_deg: number
     temperature_c: number
     precipitation_mm: number
-    missing_days: number
+    missing_days?: number
     start_date: string
     end_date: string
-  }
-  created_at: string
+  } | null
+  created_at?: string
 }

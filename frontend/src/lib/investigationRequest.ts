@@ -50,6 +50,7 @@ export const investigationRequestSchema = z.object({
 })
 
 export type InvestigationRequest = z.infer<typeof investigationRequestSchema>
+export type BackendPriorities = InvestigationRequest["priorities"]
 
 const textureId: Record<FarmProfile["soilTexture"], string> = {
   unknown: "unknown",
@@ -60,9 +61,9 @@ const textureId: Record<FarmProfile["soilTexture"], string> = {
 }
 
 const waterText: Record<FarmProfile["water"], string> = {
-  reliable: "Irrigation is reliable all season",
-  unreliable: "Water availability has become unreliable",
-  rainfed: "The farm is rain-fed only",
+  reliable: "Irrigation is reliable all season.",
+  unreliable: "Water availability has become unreliable.",
+  rainfed: "The farm is rain-fed only.",
 }
 
 const cropId = (c: string) => c.trim().toLowerCase().replace(/\s+/g, "_")

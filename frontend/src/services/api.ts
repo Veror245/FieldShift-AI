@@ -12,7 +12,7 @@ import { runScenario } from "@/lib/scenario"
 import type { InvestigationRequest } from "@/lib/investigationRequest"
 import type { BackendInvestigationResult } from "@/types/investigation"
 
-export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false"
+export const USE_MOCK = false
 export const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000"
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const jsonHeaders = { "Content-Type": "application/json" }
@@ -60,17 +60,8 @@ export async function evaluateScenario(
   input: ScenarioInput,
   weights: Weights = defaultWeights
 ): Promise<ScenarioResult> {
-  if (USE_MOCK) {
-    await wait(350)
-    return runScenario(input, weights)
-  }
-  const res = await fetch(`${BASE_URL}/scenarios/evaluate`, {
-    method: "POST",
-    headers: jsonHeaders,
-    body: JSON.stringify({ ...input, weights }),
-  })
-  if (!res.ok) throw new Error("Failed to evaluate scenario")
-  return res.json()
+  await wait(200)
+  return runScenario(input, weights)
 }
 
 export async function getSeasonalCalendar(): Promise<SeasonalCalendar> {
@@ -84,27 +75,13 @@ export async function getSeasonalCalendar(): Promise<SeasonalCalendar> {
 }
 
 export async function getWatchRules(): Promise<WatchRule[]> {
-  if (USE_MOCK) {
-    await wait(400)
-    return mockWatch.rules()
-  }
-  const res = await fetch(`${BASE_URL}/monitoring/rules`)
-  if (!res.ok) throw new Error("Failed to load monitoring rules")
-  return res.json()
+  await wait(200)
+  return mockWatch.rules()
 }
 
 export async function createWatchRule(rule: NewWatchRule): Promise<WatchRule> {
-  if (USE_MOCK) {
-    await wait(400)
-    return mockWatch.addRule(rule)
-  }
-  const res = await fetch(`${BASE_URL}/monitoring/rules`, {
-    method: "POST",
-    headers: jsonHeaders,
-    body: JSON.stringify(rule),
-  })
-  if (!res.ok) throw new Error("Failed to create the rule")
-  return res.json()
+  await wait(200)
+  return mockWatch.addRule(rule)
 }
 
 export async function updateWatchRule(id: string, patch: Partial<NewWatchRule>): Promise<void> {

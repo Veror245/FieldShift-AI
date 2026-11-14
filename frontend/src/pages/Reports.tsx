@@ -76,7 +76,7 @@ export default function ReportsPage() {
         corners,
         polygon: polygon?.geometry ?? null,
       },
-      priorities: profile?.priorities,
+      priorities: undefined,
       farm_profile: profile,
       investigation_result: investigationResult,
     }
@@ -172,7 +172,7 @@ export default function ReportsPage() {
             climate={climate.data}
             explanation={explanation.data}
             weights={weights}
-            priorities={profile?.priorities}
+            priorities={undefined}
             investigationResult={investigationResult}
             isDemo={USE_MOCK}
           />
