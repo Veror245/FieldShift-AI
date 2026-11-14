@@ -59,7 +59,10 @@ export default function ReportsPage() {
     enabled: !!selectedStrategyId,
   })
 
-  const selected = strategies.data?.find((s) => s.id === selectedStrategyId)
+  const selected =
+    strategies.data?.find((s) => s.id === selectedStrategyId) ??
+    strategies.data?.find((s) => s.kind === "soil" || s.id === "b") ??
+    strategies.data?.[0]
   const loading =
     strategies.isLoading || climate.isLoading || (!!selectedStrategyId && explanation.isLoading)
   const failed = strategies.isError || climate.isError || explanation.isError

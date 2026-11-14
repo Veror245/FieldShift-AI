@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import type { AgentEvent } from "@/types/api"
-import { BASE_URL, USE_MOCK } from "@/services/api"
+import { USE_MOCK } from "@/services/api"
 import { mockEvents } from "@/mocks/investigationEvents"
 
 export type StreamStatus = "running" | "done" | "error"
