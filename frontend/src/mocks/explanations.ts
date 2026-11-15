@@ -55,7 +55,7 @@ const evidence: EvidenceRecord[] = [
   {
     id: "E7",
     kind: "agronomy",
-    title: "Risk Auditor rule checks",
+    title: "Rotation rule checks",
     dataset: "Deterministic validation rules",
     date: "Run during this investigation",
     resolution: "Per candidate rotation",

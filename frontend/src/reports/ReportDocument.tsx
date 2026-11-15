@@ -532,7 +532,7 @@ export default function ReportDocument({
                 </ul>
               </div>
               <div>
-                <p className="font-semibold">Flagged by risk auditor</p>
+                <p className="font-semibold">Flagged risks</p>
                 <ul className="list-disc pl-5">
                   {selected.risks.map((t) => (
                     <li key={t}>{t}</li>

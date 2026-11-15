@@ -162,7 +162,7 @@ export default function StrategyCard({
         <List title="Benefits" items={s.benefits} icon={<Check className="h-4 w-4 text-forest" />} />
         <List title="Trade-offs" items={s.drawbacks} icon={<Minus className="h-4 w-4 text-forest/60" />} />
         <List
-          title="Flagged by the risk auditor"
+          title="Flagged risks"
           items={s.risks}
           icon={<ShieldAlert className="h-4 w-4 text-sun" />}
         />

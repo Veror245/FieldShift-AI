@@ -13,6 +13,7 @@ const agentOrbState: Record<AgentEvent["agent"], ThinkingOrbState> = {
   climate: "solving",
   agronomy: "shaping",
   planner: "composing",
+  // kept for backend event compatibility; auditor is no longer shown in the UI
   auditor: "listening",
   advisor: "composing",
 }
@@ -143,7 +144,7 @@ export default function AgentStepper({ events }: { events: AgentEvent[] }) {
                           : "bg-[#A66843]/15 border-[#A66843]/30 text-[#A66843]"
                     }`}
                   >
-                    Revised after audit
+                    Revised
                   </span>
                 )}
               </p>
